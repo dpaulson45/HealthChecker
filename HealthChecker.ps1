@@ -1,70 +1,70 @@
 ﻿<#
-    .NOTES
-    Name: HealthChecker.ps1
-    Original Author: Marc Nivens
+.NOTES
+	Name: HealthChecker.ps1
+	Original Author: Marc Nivens
     Author: David Paulson
     contributor: Jason Shinbaum 
-    Requires: Exchange Management Shell and administrator rights on the target Exchange
-    server as well as the local machine.
-    Version History:
-    1.31 - 9/21/2016
-    3/30/2015 - Initial Public Release.
+	Requires: Exchange Management Shell and administrator rights on the target Exchange
+	server as well as the local machine.
+	Version History:
+	1.31 - 9/21/2016
+	3/30/2015 - Initial Public Release.
     1/18/2017 - Initial Public Release of version 2. - rewritten by David Paulson.
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-    .SYNOPSIS
-    Checks the target Exchange server for various configuration recommendations from the Exchange product group.
-    .DESCRIPTION
-    This script checks the Exchange server for various configuration recommendations outlined in the 
-    "Exchange 2013 Performance Recommendations" section on TechNet, found here:
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+	BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+	DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.SYNOPSIS
+	Checks the target Exchange server for various configuration recommendations from the Exchange product group.
+.DESCRIPTION
+	This script checks the Exchange server for various configuration recommendations outlined in the 
+	"Exchange 2013 Performance Recommendations" section on TechNet, found here:
 
-    https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
+	https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
 
-    Informational items are reported in Grey.  Settings found to match the recommendations are
-    reported in Green.  Warnings are reported in yellow.  Settings that can cause performance
-    problems are reported in red.  Please note that most of these recommendations only apply to Exchange
-    2013/2016.  The script will run against Exchange 2010/2007 but the output is more limited.
-    .PARAMETER Server
-    This optional parameter allows the target Exchange server to be specified.  If it is not the 		
-    local server is assumed.
-    .PARAMETER OutputFilePath
-    This optional parameter allows an output directory to be specified.  If it is not the local 		
-    directory is assumed.  This parameter must not end in a \.  To specify the folder "logs" on 		
-    the root of the E: drive you would use "-OutputFilePath E:\logs", not "-OutputFilePath E:\logs\".
-    .PARAMETER MailboxReport
-    This optional parameter gives a report of the number of active and passive databases and
-    mailboxes on the server.
-    .PARAMETER LoadBalancingReport
+	Informational items are reported in Grey.  Settings found to match the recommendations are
+	reported in Green.  Warnings are reported in yellow.  Settings that can cause performance
+	problems are reported in red.  Please note that most of these recommendations only apply to Exchange
+	2013/2016.  The script will run against Exchange 2010/2007 but the output is more limited.
+.PARAMETER Server
+	This optional parameter allows the target Exchange server to be specified.  If it is not the 		
+	local server is assumed.
+.PARAMETER OutputFilePath
+	This optional parameter allows an output directory to be specified.  If it is not the local 		
+	directory is assumed.  This parameter must not end in a \.  To specify the folder "logs" on 		
+	the root of the E: drive you would use "-OutputFilePath E:\logs", not "-OutputFilePath E:\logs\".
+.PARAMETER MailboxReport
+	This optional parameter gives a report of the number of active and passive databases and
+	mailboxes on the server.
+.PARAMETER LoadBalancingReport
     This optional parameter will check the connection count of the Default Web Site for every server
     running Exchange 2013/2016 with the Client Access role in the org.  It then breaks down servers by percentage to 
     give you an idea of how well the load is being balanced.
-    .PARAMETER CasServerList
+.PARAMETER CasServerList
     Used with -LoadBalancingReport.  A comma separated list of CAS servers to operate against.  Without 
     this switch the report will use all 2013/2016 Client Access servers in the organization.
-    .PARAMETER SiteName
-    Used with -LoadBalancingReport.  Specifies a site to pull CAS servers from instead of querying every server
-    in the organization.
-    .PARAMETER Verbose	
-    This optional parameter enables verbose logging.
-    .EXAMPLE
-    .\HealthChecker.ps1 -Server SERVERNAME
-    Run against a single remote Exchange server
-    .EXAMPLE
-    .\HealthChecker.ps1 -Server SERVERNAME -MailboxReport -Verbose
-    Run against a single remote Exchange server with verbose logging and mailbox report enabled.
-    .EXAMPLE
+.PARAMETER SiteName
+	Used with -LoadBalancingReport.  Specifies a site to pull CAS servers from instead of querying every server
+	in the organization.
+.PARAMETER Verbose	
+	This optional parameter enables verbose logging.
+.EXAMPLE
+	.\HealthChecker.ps1 -Server SERVERNAME
+	Run against a single remote Exchange server
+.EXAMPLE
+	.\HealthChecker.ps1 -Server SERVERNAME -MailboxReport -Verbose
+	Run against a single remote Exchange server with verbose logging and mailbox report enabled.
+.EXAMPLE
     Get-ExchangeServer | ?{$_.AdminDisplayVersion -Match "^Version 15"} | %{.\HealthChecker.ps1 -Server $_.Name}
     Run against all Exchange 2013/2016 servers in the Organization.
-    .EXAMPLE
+.EXAMPLE
     .\HealthChecker.ps1 -LoadBalancingReport
     Run a load balancing report comparing all Exchange 2013/2016 CAS servers in the Organization.
-    .EXAMPLE
+.EXAMPLE
     .\HealthChecker.ps1 -LoadBalancingReport -CasServerList CAS01,CAS02,CAS03
     Run a load balancing report comparing servers named CAS01, CAS02, and CAS03.
-    .LINK
+.LINK
     https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
     https://technet.microsoft.com/en-us/library/36184b2f-4cd9-48f8-b100-867fe4c6b579(v=exchg.150)#BKMK_Prereq
 #>
@@ -82,10 +82,10 @@ param(
 )
 
 <#
-    Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
+Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
 #>
 
-$healthCheckerVersion = "2.5"
+$healthCheckerVersion = "2.6.1"
 $VirtualizationWarning = @"
 Virtual Machine detected.  Certain settings about the host hardware cannot be detected from the virtual machine.  Verify on the VM Host that: 
 
@@ -175,7 +175,8 @@ Add-Type -TypeDefinition @"
             CU12,
             CU13,
             CU14,
-            CU15
+            CU15,
+            CU16
 
         }
 
@@ -374,9 +375,9 @@ function Exit-Script
 ############################################################
 
 Function Get-OperatingSystemVersion {
-  param(
-    [Parameter(Mandatory=$true)][string]$OS_Version
-  )
+param(
+[Parameter(Mandatory=$true)][string]$OS_Version
+)
 
     Write-VerboseOutput("Calling: Get-OperatingSystemVersion")
     Write-VerboseOutput("Passed: $OS_Version")
@@ -395,9 +396,9 @@ Function Get-OperatingSystemVersion {
 }
 
 Function Get-PageFileObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Get-PageFileObject")
     Write-Verbose("Passed: $Machine_Name")
     [HealthChecker.PageFileObject]$page_obj = New-Object HealthChecker.PageFileObject
@@ -417,10 +418,10 @@ Function Get-PageFileObject {
 
 
 Function Build-NICInformationObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name,
-    [Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersion
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name,
+[Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersion
+)
 
     Write-VerboseOutput("Calling: Build-NICInformationObject")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -470,17 +471,15 @@ Function Build-NICInformationObject {
 
 
 Function Build-OperatingSystemObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
  
     Write-VerboseOutput("Calling: Build-OperatingSystemObject")
     Write-VerboseOutput("Passed: $Machine_Name")
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
-    # added 2017-03-29
-    # try/catch and $plan=$null handling added, as querying Win32_PowerPlan fails in hardend environments 
     try { 
       $plan = Get-WmiObject -ComputerName $Machine_Name -Class Win32_PowerPlan -Namespace root\cimv2\power -Filter "isActive='true'" 
     }
@@ -507,6 +506,8 @@ Function Build-OperatingSystemObject {
       $os_obj.PowerPlanSetting = 'N/A'
       $os_obj.PowerPlan = $plan
     }
+    $os_obj.PowerPlanSetting = $plan.ElementName
+    $os_obj.PowerPlan = $plan 
     $os_obj.PageFile = (Get-PageFileObject -Machine_Name $Machine_Name)
     $os_obj.NetworkAdapters = (Build-NICInformationObject -Machine_Name $Machine_Name -OSVersion $os_obj.OSVersion) 
 
@@ -522,9 +523,9 @@ Function Build-OperatingSystemObject {
 }
 
 Function Get-ServerType {
-  param(
-    [Parameter(Mandatory=$true)][string]$ServerType
-  )
+param(
+[Parameter(Mandatory=$true)][string]$ServerType
+)
     Write-VerboseOutput("Calling: Get-ServerType")
     Write-VerboseOutput("Passed: $serverType")
 
@@ -539,9 +540,9 @@ Function Get-ServerType {
 
 
 Function Get-ProcessorInformationObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Get-ProcessorInformationObject")
     Write-VerboseOutput("Passed: $Machine_Name")
     [HealthChecker.ProcessorInformationObject]$processor_info_object = New-Object HealthChecker.ProcessorInformationObject
@@ -567,6 +568,7 @@ Function Get-ProcessorInformationObject {
     {
         $processor_info_object.NumberOfPhysicalCores += $processor.NumberOfCores 
         $processor_info_object.NumberOfLogicalProcessors += $processor.NumberOfLogicalProcessors
+        $processor_info_object.NumberOfProcessors += 1 #may want to call Win32_ComputerSystem and use NumberOfProcessors for this instead.. but this should get the same results. 
 
         #Test to see if we are throttling the processor 
         if($processor.CurrentClockSpeed -lt $processor.MaxClockSpeed) 
@@ -585,9 +587,9 @@ Function Get-ProcessorInformationObject {
 }
 
 Function Build-HardwareObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Build-HardwareObject")
     Write-VerboseOutput("Passed: $Machine_Name")
     [HealthChecker.HardwareObject]$hardware_obj = New-Object HealthChecker.HardwareObject
@@ -605,9 +607,9 @@ Function Build-HardwareObject {
 
 
 Function Get-NetFrameworkVersionFriendlyInfo{
-  param(
-    [Parameter(Mandatory=$true)][int]$NetVersionKey 
-  )
+param(
+[Parameter(Mandatory=$true)][int]$NetVersionKey 
+)
     Write-VerboseOutput("Calling: Get-NetFrameworkVersionFriendlyInfo")
     Write-VerboseOutput("Passed: " + $NetVersionKey.ToString())
     [HealthChecker.NetVersionObject]$versionObject = New-Object -TypeName HealthChecker.NetVersionObject
@@ -666,9 +668,9 @@ Function Get-NetFrameworkVersionFriendlyInfo{
 
 #Uses registry build numbers from https://msdn.microsoft.com/en-us/library/hh925568(v=vs.110).aspx
 Function Build-NetFrameWorkVersionObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Build-NetFrameWorkVersionObject")
     Write-VerboseOutput("Passed: $Machine_Name")
 
@@ -685,9 +687,9 @@ Function Build-NetFrameWorkVersionObject {
 }
 
 Function Get-ExchangeVersion {
-  param(
-    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-  )
+param(
+[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+)
     Write-VerboseOutput("Calling: Get-ExchangeVersion")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     $iBuild = $AdminDisplayVersion.Major + ($AdminDisplayVersion.Minor / 10)
@@ -703,9 +705,9 @@ Function Get-ExchangeVersion {
 }
 
 Function Get-BuildNumberToString {
-  param(
-    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-  )
+param(
+[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+)
     $sAdminDisplayVersion = $AdminDisplayVersion.Major.ToString() + "." + $AdminDisplayVersion.Minor.ToString() + "."  + $AdminDisplayVersion.Build.ToString() + "."  + $AdminDisplayVersion.Revision.ToString()
     Write-VerboseOutput("Called: Get-BuildNumberToString")
     Write-VerboseOutput("Returned: " + $sAdminDisplayVersion)
@@ -713,12 +715,12 @@ Function Get-BuildNumberToString {
 }
 
 <#
-    New Release Update 
+New Release Update 
 #>
 Function Get-ExchangeBuildObject {
-  param(
-    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-  )
+param(
+[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+)
     Write-VerboseOutput("Calling: Get-ExchangeBuildObject")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     [HealthChecker.ExchangeBuildObject]$exBuildObj = New-Object -TypeName HealthChecker.ExchangeBuildObject
@@ -737,7 +739,8 @@ Function Get-ExchangeBuildObject {
         elseif($buildRevision -lt 466.34) {if($buildRevision -gt 396.30){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU1}
         elseif($buildRevision -lt 544.27) {if($buildRevision -gt 466.34){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU2}
         elseif($buildRevision -lt 669.32) {if($buildRevision -gt 544.27){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU3}
-        elseif($buildRevision -ge 669.32) {if($buildRevision -gt 669.32){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU4}
+        elseif($buildRevision -lt 845.34) {if($buildRevision -gt 669.32){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU4}
+        elseif($buildRevision -ge 845.34) {if($buildRevision -gt 845.34){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU5}
 
     }
     elseif($AdminDisplayVersion.Major -eq 15 -and $AdminDisplayVersion.Minor -eq 0)
@@ -759,8 +762,8 @@ Function Get-ExchangeBuildObject {
         elseif($buildRevision -lt 1210.3) {if($buildRevision -gt 1178.4){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU12}
         elseif($buildRevision -lt 1236.3) {if($buildRevision -gt 1210.3){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU13}
         elseif($buildRevision -lt 1263.5) {if($buildRevision -gt 1236.3){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU14}
-        elseif($buildRevision -ge 1263.5) {if($buildRevision -gt 1263.5){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU15}
-        
+        elseif($buildRevision -lt 1293.2) {if($buildRevision -gt 1263.5){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU15}
+        elseif($buildRevision -ge 1293.2) {if($buildRevision -gt 1293.2){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU16}
     }
     else
     {
@@ -774,9 +777,9 @@ Function Get-ExchangeBuildObject {
 
 #New Release Update 
 Function Get-ExchangeBuildInformation {
-  param(
-    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-  )
+param(
+[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+)
     Write-VerboseOutput("Calling: Get-ExchangeBuildInformation")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     [HealthChecker.ExchangeInformationTempObject]$tempObject = New-Object -TypeName HealthChecker.ExchangeInformationTempObject
@@ -800,9 +803,9 @@ Function Get-ExchangeBuildInformation {
                     ([HealthChecker.ExchangeCULevel]::RTM) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 RTM"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "10/01/2015"; break}
                     ([HealthChecker.ExchangeCULevel]::CU1) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU1"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "03/15/2016"; break}
                     ([HealthChecker.ExchangeCULevel]::CU2) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU2"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "06/21/2016"; break}
-                    ([HealthChecker.ExchangeCULevel]::CU3) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU3"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "09/20/2016"; $tempObject.SupportedCU = $true; break}
+                    ([HealthChecker.ExchangeCULevel]::CU3) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU3"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "09/20/2016"; break}
                     ([HealthChecker.ExchangeCULevel]::CU4) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU4"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "12/13/2016"; $tempObject.SupportedCU = $true; break}
-
+                    ([HealthChecker.ExchangeCULevel]::CU5) {$tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.FriendlyName = "Exchange 2016 CU5"; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.ReleaseDate = "03/21/2017"; $tempObject.SupportedCU = $true; break}
                     default {Write-Red "Unknown Exchange 2016 build was detected"; $tempObject.Error = $true; break;}
                 }
                 break;
@@ -826,9 +829,9 @@ Function Get-ExchangeBuildInformation {
                     ([HealthChecker.ExchangeCULevel]::CU11) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU11"; $tempObject.ReleaseDate = "12/15/2015"; break}
                     ([HealthChecker.ExchangeCULevel]::CU12) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU12"; $tempObject.ReleaseDate = "03/15/2016"; break}
                     ([HealthChecker.ExchangeCULevel]::CU13) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU13"; $tempObject.ReleaseDate = "06/21/2016"; break}
-                    ([HealthChecker.ExchangeCULevel]::CU14) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU14"; $tempObject.ReleaseDate = "09/20/2016"; $tempObject.SupportedCU = $true; break}
+                    ([HealthChecker.ExchangeCULevel]::CU14) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU14"; $tempObject.ReleaseDate = "09/20/2016"; break}
                     ([HealthChecker.ExchangeCULevel]::CU15) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU15"; $tempObject.ReleaseDate = "12/13/2016"; $tempObject.SupportedCU = $true; break}
-
+                    ([HealthChecker.ExchangeCULevel]::CU16) {$tempObject.ExchangeBuildObject = $exBuildObj; $tempObject.InbetweenCUs = $exBuildObj.InbetweenCUs; $tempObject.ExchangeBuildNumber = (Get-BuildNumberToString $AdminDisplayVersion); $tempObject.FriendlyName = "Exchange 2013 CU16"; $tempObject.ReleaseDate = "03/21/2017"; $tempObject.SupportedCU = $true; break}
                     default {Write-Red "Unknown Exchange 2013 build was detected"; $tempObject.Error = $TRUE; break;}
                 }
                 break;
@@ -849,38 +852,38 @@ Function Get-ExchangeBuildInformation {
 
 <#
 
-    Exchange 2013 Support 
-    https://technet.microsoft.com/en-us/library/aa996719(v=exchg.150).aspx
+Exchange 2013 Support 
+https://technet.microsoft.com/en-us/library/aa996719(v=exchg.150).aspx
 
-    Exchange 2016 Support 
-    https://technet.microsoft.com/en-us/library/aa996719(v=exchg.160).aspx
+Exchange 2016 Support 
+https://technet.microsoft.com/en-us/library/aa996719(v=exchg.160).aspx
 
-    Summary:
-    Exchange 2013 CU15 & 2016 CU4 .Net Framework 4.6.2 Supported on All OSs
-    Exchange 2016 CU3 .NET Framework 4.6.2 Supported on Windows 2016 OS - however, stuff is broke on this OS. 
+Summary:
+Exchange 2013 CU15 & 2016 CU4 .Net Framework 4.6.2 Supported on All OSs
+Exchange 2016 CU3 .NET Framework 4.6.2 Supported on Windows 2016 OS - however, stuff is broke on this OS. 
 
-    Exchange 2013 CU13 & Exchange 2016 CU2 .NET Framework 4.6.1 Supported on all OSs
+Exchange 2013 CU13 & Exchange 2016 CU2 .NET Framework 4.6.1 Supported on all OSs
 
 
-    Exchange 2013 CU12 & Exchange 2016 CU1 Supported on .NET Framework 4.5.2 
+Exchange 2013 CU12 & Exchange 2016 CU1 Supported on .NET Framework 4.5.2 
 
-    The upgrade to .Net 4.6.2, while strongly encouraged, is optional with these releases. As previously disclosed, the cumulative updates released in our March 2017 quarterly updates will require .Net 4.6.2.
+The upgrade to .Net 4.6.2, while strongly encouraged, is optional with these releases. As previously disclosed, the cumulative updates released in our March 2017 quarterly updates will require .Net 4.6.2.
 
 #>
 Function Check-DotNetFrameworkSupportedLevel {
-  param(
-    [Parameter(Mandatory=$true)][HealthChecker.ExchangeBuildObject]$exBuildObj,
-    [Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersionName,
-    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$NetVersion
-  )
+param(
+[Parameter(Mandatory=$true)][HealthChecker.ExchangeBuildObject]$exBuildObj,
+[Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersionName,
+[Parameter(Mandatory=$true)][HealthChecker.NetVersion]$NetVersion
+)
     Write-VerboseOutput("Calling: Check-DotNetFrameworkSupportedLevel")
 
 
     Function Check-NetVersionToExchangeVersion {
     param(
-      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$CurrentNetVersion,
-      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$MinSupportNetVersion,
-      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$RecommendedNetVersion
+    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$CurrentNetVersion,
+    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$MinSupportNetVersion,
+    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$RecommendedNetVersion
     
     )
         [HealthChecker.NetVersionCheckObject]$NetCheckObj = New-Object -TypeName HealthChecker.NetVersionCheckObject
@@ -1025,9 +1028,9 @@ Function Check-DotNetFrameworkSupportedLevel {
 }
 
 Function Get-ExchangeUpdates {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Get-ExchangeUpdates")
     Write-VerboseOutput("Passed: " + $Machine_Name)
     $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
@@ -1053,9 +1056,9 @@ Function Get-ExchangeUpdates {
 }
 
 Function Get-ServerRole {
-  param(
-    [Parameter(Mandatory=$true)][object]$ExchangeServerObj
-  )
+param(
+[Parameter(Mandatory=$true)][object]$ExchangeServerObj
+)
     Write-VerboseOutput("Calling: Get-ServerRole")
     $roles = $ExchangeServerObj.ServerRole.ToString()
     Write-VerboseOutput("Roll: " + $roles)
@@ -1083,9 +1086,9 @@ Function Get-ServerRole {
 }
 
 Function Build-ExchangeInformationObject {
-  param(
-    [Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
-  )
+param(
+[Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
+)
     $Machine_Name = $HealthExSvrObj.ServerName
     $OSVersionName = $HealthExSvrObj.OSVersion.OSVersion
     Write-VerboseOutput("Calling: Build-ExchangeInformationObject")
@@ -1152,9 +1155,9 @@ Function Build-ExchangeInformationObject {
 
 
 Function Build-HealthExchangeServerObject {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
 
     Write-VerboseOutput("Calling: Build-HealthExchangeServerObject")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -1170,9 +1173,9 @@ Function Build-HealthExchangeServerObject {
 
 
 Function Get-MailboxDatabaseAndMailboxStatistics {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     Write-VerboseOutput("Calling: Get-MailboxDatabaseAndMailboxStatistics")
     Write-VerboseOutput("Passed: " + $Machine_Name)
 
@@ -1240,28 +1243,28 @@ Function Get-CASLoadBalancingReport {
 
     if($CasServerList -ne $null)
     {
-    Write-Grey("Custom CAS server list is being used.  Only servers specified after the -CasServerList parameter will be used in the report.")
+		Write-Grey("Custom CAS server list is being used.  Only servers specified after the -CasServerList parameter will be used in the report.")
         foreach($cas in $CasServerList)
         {
             $CASServers += (Get-ExchangeServer $cas)
         }
     }
-  elseif($SiteName -ne $null)
-  {
-    Write-Grey("Site filtering ON.  Only Exchange 2013/2016 CAS servers in " + $SiteName + " will be used in the report.")
-    $CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15") -and ($_.Site.Name -eq $SiteName)}
-  }
+	elseif($SiteName -ne $null)
+	{
+		Write-Grey("Site filtering ON.  Only Exchange 2013/2016 CAS servers in " + $SiteName + " will be used in the report.")
+		$CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15") -and ($_.Site.Name -eq $SiteName)}
+	}
     else
     {
-    Write-Grey("Site filtering OFF.  All Exchange 2013/2016 CAS servers will be used in the report.")
+		Write-Grey("Site filtering OFF.  All Exchange 2013/2016 CAS servers will be used in the report.")
         $CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")}
     }
 
-  if($CASServers.Count -eq 0)
-  {
-    Write-Red("No CAS servers found using the specified search criteria.")
-    Exit
-  }
+	if($CASServers.Count -eq 0)
+	{
+		Write-Red("No CAS servers found using the specified search criteria.")
+		Exit
+	}
 
     #Pull connection and request stats from perfmon for each CAS
     foreach($cas in $CASServers)
@@ -1384,10 +1387,10 @@ Function Get-CASLoadBalancingReport {
 
 
 Function Verify-PagefileEqualMemoryPlus10{
-  param(
-    [Parameter(Mandatory=$true)][HealthChecker.PageFileObject]$page_obj,
-    [Parameter(Mandatory=$true)][HealthChecker.HardwareObject]$hardware_obj
-  )
+param(
+[Parameter(Mandatory=$true)][HealthChecker.PageFileObject]$page_obj,
+[Parameter(Mandatory=$true)][HealthChecker.HardwareObject]$hardware_obj
+)
     Write-VerboseOutput("Calling: Verify-PagefileEqualMemoryPlus10")
     Write-VerboseOutput("Passed: total memory: " + $hardware_obj.TotalMemory)
     Write-VerboseOutput("Passed: max page file size: " + $page_obj.MaxPageSize)
@@ -1409,9 +1412,9 @@ Function Verify-PagefileEqualMemoryPlus10{
 }
 
 Function Get-LmCompatibilityLevel {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
     #LSA Reg Location "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
     #Check if valuename LmCompatibilityLevel exists, if not, then value is 3
     $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
@@ -1429,9 +1432,9 @@ Function Get-LmCompatibilityLevel {
 }
 
 Function Build-LmCompatibilityLevel {
-  param(
-    [Parameter(Mandatory=$true)][string]$Machine_Name
-  )
+param(
+[Parameter(Mandatory=$true)][string]$Machine_Name
+)
 
     Write-VerboseOutput("Calling: Build-LmCompatibilityLevel")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -1454,9 +1457,9 @@ Function Build-LmCompatibilityLevel {
 }
 
 Function Display-ResultsToScreen {
-  param(
-    [Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
-  )
+param(
+[Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
+)
     Write-VerboseOutput("Calling: Display-ResultsToScreen")
     Write-VerboseOutput("For Server: " + $HealthExSvrObj.ServerName)
 
@@ -1491,7 +1494,7 @@ Function Display-ResultsToScreen {
     Write-Grey("`tBuild Number: " + $HealthExSvrObj.ExchangeInformation.ExchangeBuildNumber)
     if($HealthExSvrObj.ExchangeInformation.SupportedExchangeBuild -eq $false -and $HealthExSvrObj.ExchangeInformation.ExchangeVersion -ge [HealthChecker.ExchangeVersion]::Exchange2013)
     {
-        $Dif_Days = ((Get-Date) - ([DateTime][System.Convert]::ToDateTime($HealthExSvrObj.ExchangeInformation.BuildReleaseDate))).Days
+        $Dif_Days = ((Get-Date) - ([System.Convert]::ToDateTime([DateTime]$HealthExSvrObj.ExchangeInformation.BuildReleaseDate))).Days
         Write-Red("`tOut of date Cumulative Update.  Please upgrade to one of the two most recently released Cumulative Updates. Currently running on a build that is " + $Dif_Days + " Days old")
     }
     if($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013 -and ($HealthExSvrObj.ExchangeInformation.ExServerRole -ne [HealthChecker.ServerRole]::Edge -and $HealthExSvrObj.ExchangeInformation.ExServerRole -ne [HealthChecker.ServerRole]::MultiRole))
@@ -1593,8 +1596,8 @@ Function Display-ResultsToScreen {
     {
         Write-Green("`tPower Plan: " + $HealthExSvrObj.OSVersion.PowerPlanSetting)
     }
-    elseif($HealthExSvrObj.OSVersion.PowerPlan -eq $null) { 
-      # added 2017-03-17 to handle $plan=$null
+    elseif($HealthExSvrObj.OSVersion.PowerPlan -eq $null) 
+    { 
       Write-Red("`tPower Plan not accessible")
     }
     else
@@ -1744,24 +1747,24 @@ Function Display-ResultsToScreen {
     }
 
     ################
-    #Service Health#
-    ################
+	#Service Health#
+	################
     #We don't want to run if the server is 2013 CAS role or if the Role = None
     if(-not(($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::None) -or 
         (($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013) -and 
         ($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::ClientAccess))))
     {
-      $services = Test-ServiceHealth -Server $HealthExSvrObj.ServerName | %{$_.ServicesNotRunning}
-      if($services.length -gt 0)
-      {
-        Write-Yellow("`r`nThe following services are not running:")
-        $services | %{Write-Grey($_)}
-      }
+	    $services = Test-ServiceHealth -Server $HealthExSvrObj.ServerName | %{$_.ServicesNotRunning}
+	    if($services.length -gt 0)
+	    {
+		    Write-Yellow("`r`nThe following services are not running:")
+		    $services | %{Write-Grey($_)}
+	    }
     }
 
     #################
-  #TCP/IP Settings#
-  #################
+	#TCP/IP Settings#
+	#################
     Write-Grey("`r`nTCP/IP Settings:")
     if($HealthExSvrObj.OSVersion.TCPKeepAlive -eq 0)
     {
@@ -1777,25 +1780,25 @@ Function Display-ResultsToScreen {
     }
 
     ###############################
-  #LmCompatibilityLevel Settings#
-  ###############################
+	#LmCompatibilityLevel Settings#
+	###############################
     Write-Grey("`r`nLmCompatibilityLevel Settings:")
     Write-Grey("`tLmCompatibilityLevel is set to: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevel)
     Write-Grey("`tLmCompatibilityLevel Description: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevelDescription)
     Write-Grey("`tLmCompatibilityLevel Ref: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevelRef)
 
-  ##############
-  #Hotfix Check#
-  ##############
+	##############
+	#Hotfix Check#
+	##############
     
     if($HealthExSvrObj.ExchangeInformation.ExchangeVersion -ne [HealthChecker.ExchangeVersion]::Exchange2010)
     {
         Write-Grey("`r`nHotfix Check:")
-        $2008HotfixList = $null
-      $2008R2HotfixList = @("KB3004383")
-      $2012HotfixList = $null
-      $2012R2HotfixList = @("KB3041832")
-        $2016HotfixList = $null
+      	$2008HotfixList = $null
+	    $2008R2HotfixList = @("KB3004383")
+	    $2012HotfixList = $null
+	    $2012R2HotfixList = @("KB3041832")
+        $2016HotfixList = @("KB3206632")
 	    
         
         Function Check-Hotfix 
@@ -1854,14 +1857,12 @@ Function Display-ResultsToScreen {
 
 
 Function Main {
-
-  # added 2017-03-17
-  if(!(Test-Path HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\ClientAccessRole)){
-    # If local server does not host any Exchange roles (e.g. dedicated script server /w Exchange management role only) 
-    # select a single CAS server for all other requests
-    $Server = (Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")} | Select-Object -First 1).Name
-  }   
     
+    if(!(Test-Path HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\ClientAccessRole))
+    {
+      # Local server does not host any Exchange roles
+      $Server = (Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")} | Select-Object -First 1).Name
+    } 
 
     if((Test-Path $OutputFilePath) -eq $false)
     {
@@ -1891,7 +1892,6 @@ Function Main {
         {
             Write-Yellow("-LoadBalancingReport is only supported for Exchange 2013 and greater")
         }
-        exit 0
     }
     
     $OutputFileName = "HealthCheck" + "-" + $Server + "-" + (get-date).tostring("MMddyyyyHHmmss") + ".log"
@@ -1910,7 +1910,7 @@ Function Main {
     {
         Write-Grey(" ");Write-Grey(" ")
 
-        $index = 0 
+        $index = 0; 
         "Errors that occurred" | Out-File ($OutputFullPath) -Append
         while($index -lt ($Error.Count - $iErrorStartCount))
         {
