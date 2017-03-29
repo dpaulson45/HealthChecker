@@ -1,70 +1,70 @@
 ﻿<#
-.NOTES
-	Name: HealthChecker.ps1
-	Original Author: Marc Nivens
+    .NOTES
+    Name: HealthChecker.ps1
+    Original Author: Marc Nivens
     Author: David Paulson
     contributor: Jason Shinbaum 
-	Requires: Exchange Management Shell and administrator rights on the target Exchange
-	server as well as the local machine.
-	Version History:
-	1.31 - 9/21/2016
-	3/30/2015 - Initial Public Release.
+    Requires: Exchange Management Shell and administrator rights on the target Exchange
+    server as well as the local machine.
+    Version History:
+    1.31 - 9/21/2016
+    3/30/2015 - Initial Public Release.
     1/18/2017 - Initial Public Release of version 2. - rewritten by David Paulson.
-	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-	BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-	NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-	DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-.SYNOPSIS
-	Checks the target Exchange server for various configuration recommendations from the Exchange product group.
-.DESCRIPTION
-	This script checks the Exchange server for various configuration recommendations outlined in the 
-	"Exchange 2013 Performance Recommendations" section on TechNet, found here:
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+    BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+    DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+    .SYNOPSIS
+    Checks the target Exchange server for various configuration recommendations from the Exchange product group.
+    .DESCRIPTION
+    This script checks the Exchange server for various configuration recommendations outlined in the 
+    "Exchange 2013 Performance Recommendations" section on TechNet, found here:
 
-	https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
+    https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
 
-	Informational items are reported in Grey.  Settings found to match the recommendations are
-	reported in Green.  Warnings are reported in yellow.  Settings that can cause performance
-	problems are reported in red.  Please note that most of these recommendations only apply to Exchange
-	2013/2016.  The script will run against Exchange 2010/2007 but the output is more limited.
-.PARAMETER Server
-	This optional parameter allows the target Exchange server to be specified.  If it is not the 		
-	local server is assumed.
-.PARAMETER OutputFilePath
-	This optional parameter allows an output directory to be specified.  If it is not the local 		
-	directory is assumed.  This parameter must not end in a \.  To specify the folder "logs" on 		
-	the root of the E: drive you would use "-OutputFilePath E:\logs", not "-OutputFilePath E:\logs\".
-.PARAMETER MailboxReport
-	This optional parameter gives a report of the number of active and passive databases and
-	mailboxes on the server.
-.PARAMETER LoadBalancingReport
+    Informational items are reported in Grey.  Settings found to match the recommendations are
+    reported in Green.  Warnings are reported in yellow.  Settings that can cause performance
+    problems are reported in red.  Please note that most of these recommendations only apply to Exchange
+    2013/2016.  The script will run against Exchange 2010/2007 but the output is more limited.
+    .PARAMETER Server
+    This optional parameter allows the target Exchange server to be specified.  If it is not the 		
+    local server is assumed.
+    .PARAMETER OutputFilePath
+    This optional parameter allows an output directory to be specified.  If it is not the local 		
+    directory is assumed.  This parameter must not end in a \.  To specify the folder "logs" on 		
+    the root of the E: drive you would use "-OutputFilePath E:\logs", not "-OutputFilePath E:\logs\".
+    .PARAMETER MailboxReport
+    This optional parameter gives a report of the number of active and passive databases and
+    mailboxes on the server.
+    .PARAMETER LoadBalancingReport
     This optional parameter will check the connection count of the Default Web Site for every server
     running Exchange 2013/2016 with the Client Access role in the org.  It then breaks down servers by percentage to 
     give you an idea of how well the load is being balanced.
-.PARAMETER CasServerList
+    .PARAMETER CasServerList
     Used with -LoadBalancingReport.  A comma separated list of CAS servers to operate against.  Without 
     this switch the report will use all 2013/2016 Client Access servers in the organization.
-.PARAMETER SiteName
-	Used with -LoadBalancingReport.  Specifies a site to pull CAS servers from instead of querying every server
-	in the organization.
-.PARAMETER Verbose	
-	This optional parameter enables verbose logging.
-.EXAMPLE
-	.\HealthChecker.ps1 -Server SERVERNAME
-	Run against a single remote Exchange server
-.EXAMPLE
-	.\HealthChecker.ps1 -Server SERVERNAME -MailboxReport -Verbose
-	Run against a single remote Exchange server with verbose logging and mailbox report enabled.
-.EXAMPLE
+    .PARAMETER SiteName
+    Used with -LoadBalancingReport.  Specifies a site to pull CAS servers from instead of querying every server
+    in the organization.
+    .PARAMETER Verbose	
+    This optional parameter enables verbose logging.
+    .EXAMPLE
+    .\HealthChecker.ps1 -Server SERVERNAME
+    Run against a single remote Exchange server
+    .EXAMPLE
+    .\HealthChecker.ps1 -Server SERVERNAME -MailboxReport -Verbose
+    Run against a single remote Exchange server with verbose logging and mailbox report enabled.
+    .EXAMPLE
     Get-ExchangeServer | ?{$_.AdminDisplayVersion -Match "^Version 15"} | %{.\HealthChecker.ps1 -Server $_.Name}
     Run against all Exchange 2013/2016 servers in the Organization.
-.EXAMPLE
+    .EXAMPLE
     .\HealthChecker.ps1 -LoadBalancingReport
     Run a load balancing report comparing all Exchange 2013/2016 CAS servers in the Organization.
-.EXAMPLE
+    .EXAMPLE
     .\HealthChecker.ps1 -LoadBalancingReport -CasServerList CAS01,CAS02,CAS03
     Run a load balancing report comparing servers named CAS01, CAS02, and CAS03.
-.LINK
+    .LINK
     https://technet.microsoft.com/en-us/library/dn879075(v=exchg.150).aspx
     https://technet.microsoft.com/en-us/library/36184b2f-4cd9-48f8-b100-867fe4c6b579(v=exchg.150)#BKMK_Prereq
 #>
@@ -82,7 +82,7 @@ param(
 )
 
 <#
-Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
+    Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
 #>
 
 $healthCheckerVersion = "2.5"
@@ -374,9 +374,9 @@ function Exit-Script
 ############################################################
 
 Function Get-OperatingSystemVersion {
-param(
-[Parameter(Mandatory=$true)][string]$OS_Version
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$OS_Version
+  )
 
     Write-VerboseOutput("Calling: Get-OperatingSystemVersion")
     Write-VerboseOutput("Passed: $OS_Version")
@@ -395,9 +395,9 @@ param(
 }
 
 Function Get-PageFileObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Get-PageFileObject")
     Write-Verbose("Passed: $Machine_Name")
     [HealthChecker.PageFileObject]$page_obj = New-Object HealthChecker.PageFileObject
@@ -417,10 +417,10 @@ param(
 
 
 Function Build-NICInformationObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name,
-[Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name,
+    [Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersion
+  )
 
     Write-VerboseOutput("Calling: Build-NICInformationObject")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -470,15 +470,17 @@ param(
 
 
 Function Build-OperatingSystemObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
  
     Write-VerboseOutput("Calling: Build-OperatingSystemObject")
     Write-VerboseOutput("Passed: $Machine_Name")
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
+    # added 2017-03-29
+    # try/catch and $plan=$null handling added, as querying Win32_PowerPlan fails in hardend environments 
     try { 
       $plan = Get-WmiObject -ComputerName $Machine_Name -Class Win32_PowerPlan -Namespace root\cimv2\power -Filter "isActive='true'" 
     }
@@ -520,9 +522,9 @@ param(
 }
 
 Function Get-ServerType {
-param(
-[Parameter(Mandatory=$true)][string]$ServerType
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$ServerType
+  )
     Write-VerboseOutput("Calling: Get-ServerType")
     Write-VerboseOutput("Passed: $serverType")
 
@@ -537,9 +539,9 @@ param(
 
 
 Function Get-ProcessorInformationObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Get-ProcessorInformationObject")
     Write-VerboseOutput("Passed: $Machine_Name")
     [HealthChecker.ProcessorInformationObject]$processor_info_object = New-Object HealthChecker.ProcessorInformationObject
@@ -583,9 +585,9 @@ param(
 }
 
 Function Build-HardwareObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Build-HardwareObject")
     Write-VerboseOutput("Passed: $Machine_Name")
     [HealthChecker.HardwareObject]$hardware_obj = New-Object HealthChecker.HardwareObject
@@ -603,9 +605,9 @@ param(
 
 
 Function Get-NetFrameworkVersionFriendlyInfo{
-param(
-[Parameter(Mandatory=$true)][int]$NetVersionKey 
-)
+  param(
+    [Parameter(Mandatory=$true)][int]$NetVersionKey 
+  )
     Write-VerboseOutput("Calling: Get-NetFrameworkVersionFriendlyInfo")
     Write-VerboseOutput("Passed: " + $NetVersionKey.ToString())
     [HealthChecker.NetVersionObject]$versionObject = New-Object -TypeName HealthChecker.NetVersionObject
@@ -664,9 +666,9 @@ param(
 
 #Uses registry build numbers from https://msdn.microsoft.com/en-us/library/hh925568(v=vs.110).aspx
 Function Build-NetFrameWorkVersionObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Build-NetFrameWorkVersionObject")
     Write-VerboseOutput("Passed: $Machine_Name")
 
@@ -683,9 +685,9 @@ param(
 }
 
 Function Get-ExchangeVersion {
-param(
-[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+  )
     Write-VerboseOutput("Calling: Get-ExchangeVersion")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     $iBuild = $AdminDisplayVersion.Major + ($AdminDisplayVersion.Minor / 10)
@@ -701,9 +703,9 @@ param(
 }
 
 Function Get-BuildNumberToString {
-param(
-[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+  )
     $sAdminDisplayVersion = $AdminDisplayVersion.Major.ToString() + "." + $AdminDisplayVersion.Minor.ToString() + "."  + $AdminDisplayVersion.Build.ToString() + "."  + $AdminDisplayVersion.Revision.ToString()
     Write-VerboseOutput("Called: Get-BuildNumberToString")
     Write-VerboseOutput("Returned: " + $sAdminDisplayVersion)
@@ -711,12 +713,12 @@ param(
 }
 
 <#
-New Release Update 
+    New Release Update 
 #>
 Function Get-ExchangeBuildObject {
-param(
-[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+  )
     Write-VerboseOutput("Calling: Get-ExchangeBuildObject")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     [HealthChecker.ExchangeBuildObject]$exBuildObj = New-Object -TypeName HealthChecker.ExchangeBuildObject
@@ -772,9 +774,9 @@ param(
 
 #New Release Update 
 Function Get-ExchangeBuildInformation {
-param(
-[Parameter(Mandatory=$true)][object]$AdminDisplayVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][object]$AdminDisplayVersion
+  )
     Write-VerboseOutput("Calling: Get-ExchangeBuildInformation")
     Write-VerboseOutput("Passed: " + $AdminDisplayVersion.ToString())
     [HealthChecker.ExchangeInformationTempObject]$tempObject = New-Object -TypeName HealthChecker.ExchangeInformationTempObject
@@ -847,38 +849,38 @@ param(
 
 <#
 
-Exchange 2013 Support 
-https://technet.microsoft.com/en-us/library/aa996719(v=exchg.150).aspx
+    Exchange 2013 Support 
+    https://technet.microsoft.com/en-us/library/aa996719(v=exchg.150).aspx
 
-Exchange 2016 Support 
-https://technet.microsoft.com/en-us/library/aa996719(v=exchg.160).aspx
+    Exchange 2016 Support 
+    https://technet.microsoft.com/en-us/library/aa996719(v=exchg.160).aspx
 
-Summary:
-Exchange 2013 CU15 & 2016 CU4 .Net Framework 4.6.2 Supported on All OSs
-Exchange 2016 CU3 .NET Framework 4.6.2 Supported on Windows 2016 OS - however, stuff is broke on this OS. 
+    Summary:
+    Exchange 2013 CU15 & 2016 CU4 .Net Framework 4.6.2 Supported on All OSs
+    Exchange 2016 CU3 .NET Framework 4.6.2 Supported on Windows 2016 OS - however, stuff is broke on this OS. 
 
-Exchange 2013 CU13 & Exchange 2016 CU2 .NET Framework 4.6.1 Supported on all OSs
+    Exchange 2013 CU13 & Exchange 2016 CU2 .NET Framework 4.6.1 Supported on all OSs
 
 
-Exchange 2013 CU12 & Exchange 2016 CU1 Supported on .NET Framework 4.5.2 
+    Exchange 2013 CU12 & Exchange 2016 CU1 Supported on .NET Framework 4.5.2 
 
-The upgrade to .Net 4.6.2, while strongly encouraged, is optional with these releases. As previously disclosed, the cumulative updates released in our March 2017 quarterly updates will require .Net 4.6.2.
+    The upgrade to .Net 4.6.2, while strongly encouraged, is optional with these releases. As previously disclosed, the cumulative updates released in our March 2017 quarterly updates will require .Net 4.6.2.
 
 #>
 Function Check-DotNetFrameworkSupportedLevel {
-param(
-[Parameter(Mandatory=$true)][HealthChecker.ExchangeBuildObject]$exBuildObj,
-[Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersionName,
-[Parameter(Mandatory=$true)][HealthChecker.NetVersion]$NetVersion
-)
+  param(
+    [Parameter(Mandatory=$true)][HealthChecker.ExchangeBuildObject]$exBuildObj,
+    [Parameter(Mandatory=$true)][HealthChecker.OSVersionName]$OSVersionName,
+    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$NetVersion
+  )
     Write-VerboseOutput("Calling: Check-DotNetFrameworkSupportedLevel")
 
 
     Function Check-NetVersionToExchangeVersion {
     param(
-    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$CurrentNetVersion,
-    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$MinSupportNetVersion,
-    [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$RecommendedNetVersion
+      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$CurrentNetVersion,
+      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$MinSupportNetVersion,
+      [Parameter(Mandatory=$true)][HealthChecker.NetVersion]$RecommendedNetVersion
     
     )
         [HealthChecker.NetVersionCheckObject]$NetCheckObj = New-Object -TypeName HealthChecker.NetVersionCheckObject
@@ -1023,9 +1025,9 @@ param(
 }
 
 Function Get-ExchangeUpdates {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Get-ExchangeUpdates")
     Write-VerboseOutput("Passed: " + $Machine_Name)
     $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
@@ -1051,9 +1053,9 @@ param(
 }
 
 Function Get-ServerRole {
-param(
-[Parameter(Mandatory=$true)][object]$ExchangeServerObj
-)
+  param(
+    [Parameter(Mandatory=$true)][object]$ExchangeServerObj
+  )
     Write-VerboseOutput("Calling: Get-ServerRole")
     $roles = $ExchangeServerObj.ServerRole.ToString()
     Write-VerboseOutput("Roll: " + $roles)
@@ -1081,9 +1083,9 @@ param(
 }
 
 Function Build-ExchangeInformationObject {
-param(
-[Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
-)
+  param(
+    [Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
+  )
     $Machine_Name = $HealthExSvrObj.ServerName
     $OSVersionName = $HealthExSvrObj.OSVersion.OSVersion
     Write-VerboseOutput("Calling: Build-ExchangeInformationObject")
@@ -1150,9 +1152,9 @@ param(
 
 
 Function Build-HealthExchangeServerObject {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
 
     Write-VerboseOutput("Calling: Build-HealthExchangeServerObject")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -1168,9 +1170,9 @@ param(
 
 
 Function Get-MailboxDatabaseAndMailboxStatistics {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     Write-VerboseOutput("Calling: Get-MailboxDatabaseAndMailboxStatistics")
     Write-VerboseOutput("Passed: " + $Machine_Name)
 
@@ -1238,28 +1240,28 @@ Function Get-CASLoadBalancingReport {
 
     if($CasServerList -ne $null)
     {
-		Write-Grey("Custom CAS server list is being used.  Only servers specified after the -CasServerList parameter will be used in the report.")
+    Write-Grey("Custom CAS server list is being used.  Only servers specified after the -CasServerList parameter will be used in the report.")
         foreach($cas in $CasServerList)
         {
             $CASServers += (Get-ExchangeServer $cas)
         }
     }
-	elseif($SiteName -ne $null)
-	{
-		Write-Grey("Site filtering ON.  Only Exchange 2013/2016 CAS servers in " + $SiteName + " will be used in the report.")
-		$CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15") -and ($_.Site.Name -eq $SiteName)}
-	}
+  elseif($SiteName -ne $null)
+  {
+    Write-Grey("Site filtering ON.  Only Exchange 2013/2016 CAS servers in " + $SiteName + " will be used in the report.")
+    $CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15") -and ($_.Site.Name -eq $SiteName)}
+  }
     else
     {
-		Write-Grey("Site filtering OFF.  All Exchange 2013/2016 CAS servers will be used in the report.")
+    Write-Grey("Site filtering OFF.  All Exchange 2013/2016 CAS servers will be used in the report.")
         $CASServers = Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")}
     }
 
-	if($CASServers.Count -eq 0)
-	{
-		Write-Red("No CAS servers found using the specified search criteria.")
-		Exit
-	}
+  if($CASServers.Count -eq 0)
+  {
+    Write-Red("No CAS servers found using the specified search criteria.")
+    Exit
+  }
 
     #Pull connection and request stats from perfmon for each CAS
     foreach($cas in $CASServers)
@@ -1382,10 +1384,10 @@ Function Get-CASLoadBalancingReport {
 
 
 Function Verify-PagefileEqualMemoryPlus10{
-param(
-[Parameter(Mandatory=$true)][HealthChecker.PageFileObject]$page_obj,
-[Parameter(Mandatory=$true)][HealthChecker.HardwareObject]$hardware_obj
-)
+  param(
+    [Parameter(Mandatory=$true)][HealthChecker.PageFileObject]$page_obj,
+    [Parameter(Mandatory=$true)][HealthChecker.HardwareObject]$hardware_obj
+  )
     Write-VerboseOutput("Calling: Verify-PagefileEqualMemoryPlus10")
     Write-VerboseOutput("Passed: total memory: " + $hardware_obj.TotalMemory)
     Write-VerboseOutput("Passed: max page file size: " + $page_obj.MaxPageSize)
@@ -1407,9 +1409,9 @@ param(
 }
 
 Function Get-LmCompatibilityLevel {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
     #LSA Reg Location "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
     #Check if valuename LmCompatibilityLevel exists, if not, then value is 3
     $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
@@ -1427,9 +1429,9 @@ param(
 }
 
 Function Build-LmCompatibilityLevel {
-param(
-[Parameter(Mandatory=$true)][string]$Machine_Name
-)
+  param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+  )
 
     Write-VerboseOutput("Calling: Build-LmCompatibilityLevel")
     Write-VerboseOutput("Passed: $Machine_Name")
@@ -1452,9 +1454,9 @@ param(
 }
 
 Function Display-ResultsToScreen {
-param(
-[Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
-)
+  param(
+    [Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
+  )
     Write-VerboseOutput("Calling: Display-ResultsToScreen")
     Write-VerboseOutput("For Server: " + $HealthExSvrObj.ServerName)
 
@@ -1592,6 +1594,7 @@ param(
         Write-Green("`tPower Plan: " + $HealthExSvrObj.OSVersion.PowerPlanSetting)
     }
     elseif($HealthExSvrObj.OSVersion.PowerPlan -eq $null) { 
+      # added 2017-03-17 to handle $plan=$null
       Write-Red("`tPower Plan not accessible")
     }
     else
@@ -1741,24 +1744,24 @@ param(
     }
 
     ################
-	#Service Health#
-	################
+    #Service Health#
+    ################
     #We don't want to run if the server is 2013 CAS role or if the Role = None
     if(-not(($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::None) -or 
         (($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013) -and 
         ($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::ClientAccess))))
     {
-	    $services = Test-ServiceHealth -Server $HealthExSvrObj.ServerName | %{$_.ServicesNotRunning}
-	    if($services.length -gt 0)
-	    {
-		    Write-Yellow("`r`nThe following services are not running:")
-		    $services | %{Write-Grey($_)}
-	    }
+      $services = Test-ServiceHealth -Server $HealthExSvrObj.ServerName | %{$_.ServicesNotRunning}
+      if($services.length -gt 0)
+      {
+        Write-Yellow("`r`nThe following services are not running:")
+        $services | %{Write-Grey($_)}
+      }
     }
 
     #################
-	#TCP/IP Settings#
-	#################
+  #TCP/IP Settings#
+  #################
     Write-Grey("`r`nTCP/IP Settings:")
     if($HealthExSvrObj.OSVersion.TCPKeepAlive -eq 0)
     {
@@ -1774,24 +1777,24 @@ param(
     }
 
     ###############################
-	#LmCompatibilityLevel Settings#
-	###############################
+  #LmCompatibilityLevel Settings#
+  ###############################
     Write-Grey("`r`nLmCompatibilityLevel Settings:")
     Write-Grey("`tLmCompatibilityLevel is set to: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevel)
     Write-Grey("`tLmCompatibilityLevel Description: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevelDescription)
     Write-Grey("`tLmCompatibilityLevel Ref: " + $HealthExSvrObj.OSVersion.LmCompat.LmCompatibilityLevelRef)
 
-	##############
-	#Hotfix Check#
-	##############
+  ##############
+  #Hotfix Check#
+  ##############
     
     if($HealthExSvrObj.ExchangeInformation.ExchangeVersion -ne [HealthChecker.ExchangeVersion]::Exchange2010)
     {
         Write-Grey("`r`nHotfix Check:")
-      	$2008HotfixList = $null
-	    $2008R2HotfixList = @("KB3004383")
-	    $2012HotfixList = $null
-	    $2012R2HotfixList = @("KB3041832")
+        $2008HotfixList = $null
+      $2008R2HotfixList = @("KB3004383")
+      $2012HotfixList = $null
+      $2012R2HotfixList = @("KB3041832")
         $2016HotfixList = $null
 	    
         
@@ -1851,8 +1854,11 @@ param(
 
 
 Function Main {
+
+  # added 2017-03-17
   if(!(Test-Path HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\ClientAccessRole)){
-    # Local server does not host any Exchange roles
+    # If local server does not host any Exchange roles (e.g. dedicated script server /w Exchange management role only) 
+    # select a single CAS server for all other requests
     $Server = (Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")} | Select-Object -First 1).Name
   }   
     
