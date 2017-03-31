@@ -85,7 +85,7 @@ param(
 Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
 #>
 
-$healthCheckerVersion = "2.6.1"
+$healthCheckerVersion = "2.6.2"
 $VirtualizationWarning = @"
 Virtual Machine detected.  Certain settings about the host hardware cannot be detected from the virtual machine.  Verify on the VM Host that: 
 
@@ -281,6 +281,7 @@ Add-Type -TypeDefinition @"
             public string DriverDate;   // date of the driver that is currently installed on the server 
             public string DriverVersion; // version of the driver that we are on 
             public string RSSEanbled;  //bool to determine if RSS is enabled 
+            public string Name;        // name of the adapter
             public object NICObject; //objec to store the adapter info 
              
         }
@@ -443,6 +444,7 @@ param(
             $nicObject.DriverVersion = $adapter.DriverVersionString
             $nicObject.LinkSpeed = (($adapter.Speed)/1000000).ToString() + " Mbps"
             $nicObject.RSSEanbled = $RSS_Settings.Enabled
+            $nicObject.Name = $adapter.Name
             $nicObject.NICObject = $adapter 
             $aNICObjects += $nicObject
         }
@@ -1614,7 +1616,7 @@ param(
     {
         foreach($adapter in $HealthExSvrObj.OSVersion.NetworkAdapters)
         {
-            Write-Grey("`tInterface Description: " + $adapter.Description)
+            Write-Grey(("`tInterface Description: {0} [{1}]" -f $adapter.Description, $adapter.Name))
             if($HealthExSvrObj.HardwareInfo.ServerType -eq [HealthChecker.ServerType]::Physical)
             {
                 if((New-TimeSpan -Start (Get-Date) -End $adapter.DriverDate) -lt [int]-365)
