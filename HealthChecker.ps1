@@ -85,7 +85,7 @@ param(
 Note to self. "New Release Update" are functions that i need to update when a new release of Exchange is published
 #>
 
-$healthCheckerVersion = "2.6"
+$healthCheckerVersion = "2.6.2"
 $VirtualizationWarning = @"
 Virtual Machine detected.  Certain settings about the host hardware cannot be detected from the virtual machine.  Verify on the VM Host that: 
 
@@ -281,6 +281,7 @@ Add-Type -TypeDefinition @"
             public string DriverDate;   // date of the driver that is currently installed on the server 
             public string DriverVersion; // version of the driver that we are on 
             public string RSSEanbled;  //bool to determine if RSS is enabled 
+            public string Name;        // name of the adapter
             public object NICObject; //objec to store the adapter info 
              
         }
@@ -443,6 +444,7 @@ param(
             $nicObject.DriverVersion = $adapter.DriverVersionString
             $nicObject.LinkSpeed = (($adapter.Speed)/1000000).ToString() + " Mbps"
             $nicObject.RSSEanbled = $RSS_Settings.Enabled
+            $nicObject.Name = $adapter.Name
             $nicObject.NICObject = $adapter 
             $aNICObjects += $nicObject
         }
@@ -480,16 +482,31 @@ param(
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
-    $plan = Get-WmiObject -ComputerName $Machine_Name -Class Win32_PowerPlan -Namespace root\cimv2\power -Filter "isActive='true'"
+    try { 
+      $plan = Get-WmiObject -ComputerName $Machine_Name -Class Win32_PowerPlan -Namespace root\cimv2\power -Filter "isActive='true'" 
+    }
+    catch {
+      $plan = $null
+    }
     $os_obj.OSVersionBuild = $os.Version
     $os_obj.OSVersion = (Get-OperatingSystemVersion -OS_Version $os_obj.OSVersionBuild)
     $os_obj.OperatingSystemName = $os.Caption
     $os_obj.OperatingSystem = $os
     
-    if($plan.InstanceID -eq "Microsoft:PowerPlan\{8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c}")
-    {
-        Write-VerboseOutput("High Performance Power Plan is set to true")
-        $os_obj.HighPerformanceSet = $true
+    if($plan -ne $null) { 
+      if($plan.InstanceID -eq "Microsoft:PowerPlan\{8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c}")
+      {
+          Write-VerboseOutput("High Performance Power Plan is set to true")
+          $os_obj.HighPerformanceSet = $true
+      }
+      $os_obj.PowerPlanSetting = $plan.ElementName
+      $os_obj.PowerPlan = $plan 
+    }
+    else {
+      Write-VerboseOutput('Power Plan information could not be read')
+      $os_obj.HighPerformanceSet = $false
+      $os_obj.PowerPlanSetting = 'N/A'
+      $os_obj.PowerPlan = $plan
     }
     $os_obj.PowerPlanSetting = $plan.ElementName
     $os_obj.PowerPlan = $plan 
@@ -1581,6 +1598,10 @@ param(
     {
         Write-Green("`tPower Plan: " + $HealthExSvrObj.OSVersion.PowerPlanSetting)
     }
+    elseif($HealthExSvrObj.OSVersion.PowerPlan -eq $null) 
+    { 
+      Write-Red("`tPower Plan not accessible")
+    }
     else
     {
         Write-Red("`tPower Plan: " + $HealthExSvrObj.OSVersion.PowerPlanSetting + " --- Error: High Performance Power Plan is recommended")
@@ -1595,7 +1616,7 @@ param(
     {
         foreach($adapter in $HealthExSvrObj.OSVersion.NetworkAdapters)
         {
-            Write-Grey("`tInterface Description: " + $adapter.Description)
+            Write-Grey(("`tInterface Description: {0} [{1}]" -f $adapter.Description, $adapter.Name))
             if($HealthExSvrObj.HardwareInfo.ServerType -eq [HealthChecker.ServerType]::Physical)
             {
                 if((New-TimeSpan -Start (Get-Date) -End $adapter.DriverDate) -lt [int]-365)
@@ -1839,7 +1860,11 @@ param(
 
 Function Main {
     
-    
+    if(!(Test-Path HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\ClientAccessRole))
+    {
+      # Local server does not host any Exchange roles
+      $Server = (Get-ExchangeServer | ?{($_.IsClientAccessServer -eq $true) -and ($_.AdminDisplayVersion -Match "^Version 15")} | Select-Object -First 1).Name
+    } 
 
     if((Test-Path $OutputFilePath) -eq $false)
     {
