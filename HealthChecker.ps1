@@ -5,6 +5,7 @@
     Author: David Paulson
     Contributor: Jason Shinbaum 
 	Contributor: Michael Schatte
+	Contributor: Lukas Sassl
 	Requires: Exchange Management Shell and administrator rights on the target Exchange
 	server as well as the local machine.
 	Major Release History:
@@ -2420,6 +2421,58 @@ param(
         Write-Green("System NOT vulnerable to CVE-2018-8581.")
     }
 
+    #Check for CVE-2010-3190 vulnerability
+    #If installed Exchange server release is prior to October 2018
+    #KB2565063 should be installed to fix vulnerability
+
+    Try
+    {
+        $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
+        $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{1D8E6291-B0D5-35EC-8441-6616F567A0F7}")
+        $RegValue = $RegKey.GetValue("DisplayVersion")
+    }
+    Catch
+    {
+        Write-VerboseOutput("Registry key 'DisplayVersion' not found.")
+    }
+
+    $NotVulnerableBuildDate = [System.Convert]::ToDateTime([DateTime]"1 Oct 2018")
+
+    If ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -ge [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        If ([System.Convert]::ToDateTime([DateTime]$HealthExSvrObj.ExchangeInformation.BuildReleaseDate) -lt $NotVulnerableBuildDate)
+        {
+            Write-Yellow("`nYour Exchange server build is prior to October 2018")
+            If (($RegValue -ne $null) -and ($RegValue -match "10.0.40219"))
+            {
+                Write-Green("but NOT vulnerable to CVE-2010-3190.")
+            }
+            Else
+            {
+                Write-Red("and vulnerable to CVE-2010-3190.  See: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+            }
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2010-3190.")
+        }
+    }
+    Else
+    {
+        Write-Yellow("`nYour Exchange server version is $($HealthExSvrObj.ExchangeInformation.ExchangeFriendlyName):")
+        Write-Yellow("Unable to determine build date.")
+        If (($RegValue -ne $null) -and ($RegValue -match "10.0.40219"))
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2010-3190.")
+        }
+        Else
+        {
+            Write-Red("`nSystem seems to be vulnerable to CVE-2010-3190.")
+            Write-Red("You should check if your build is prior October 2018 and if so, install KB2565063")
+            Write-Red("Build information: https://docs.microsoft.com/en-us/Exchange/new-features/build-numbers-and-release-dates?view=exchserver-2019")
+            Write-Red("Vulnerability information: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+        }
+    }
 }
 
 Function Display-KBHotfixCheckFailSafe {
@@ -2427,8 +2480,8 @@ param(
 [Parameter(Mandatory=$true)][HealthChecker.HealthExchangeServerObject]$HealthExSvrObj
 )
 
-    Write-Grey("`r`nHotfix Check:")
-    $2008HotfixList = $null
+  Write-Grey("`r`nHotfix Check:")
+  $2008HotfixList = $null
   $2008R2HotfixList = @("KB3004383")
   $2012HotfixList = $null
   $2012R2HotfixList = @("KB3041832")
