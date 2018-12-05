@@ -2433,7 +2433,7 @@ param(
     }
     Catch
     {
-        Write-VerboseOutput("Registry key 'DisplayVersion' not found.")
+        Write-VerboseOutput("Registry key '{1D8E6291-B0D5-35EC-8441-6616F567A0F7}' not found.")
     }
 
     $NotVulnerableBuildDate = [System.Convert]::ToDateTime([DateTime]"1 Oct 2018")
