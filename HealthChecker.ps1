@@ -2495,7 +2495,7 @@ param(
         If ($HealthExSvrObj.ExchangeInformation.BuildReleaseDate -le [System.Convert]::ToDateTime([DateTime]"15 Oct 2018"))
         {
             Write-Yellow("`nYour Exchange server 2016 build is prior to CU11")
-            If ((($RegValue.Split('/'))[4] -eq  4340731) -and ((($RegValueUninstall.Split(''))[3]).Split('=')[1] -match "{2f90ad4f-7290-473e-b00f-73e24f5da717}"))
+            If (($RegKey -ne $null) -and (($RegValue.Split('/'))[4] -eq  4340731) -and ((($RegValueUninstall.Split(''))[3]).Split('=')[1] -match "{2f90ad4f-7290-473e-b00f-73e24f5da717}"))
             {
                 Write-Green("but NOT vulnerable to CVE-2018-8374.")
             }
