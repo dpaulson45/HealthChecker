@@ -2473,6 +2473,38 @@ param(
             Write-Red("Vulnerability information: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
         }
     }
+    
+    #Check for CVE-2018-8374 vulnerability
+    #Affects Exchange server 2016 < CU11
+    #KB4340731 should be installed to fix vulnerability
+
+    Try
+    {
+        $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
+        $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Patch")
+        $RegValue = $RegKey.GetValue("HelpLink")
+        $RegValueUninstall = $RegKey.GetValue("UninstallString")
+    }
+    Catch
+    {
+        #Do nothing
+    }
+
+    If ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2016)
+    {
+        If ($HealthExSvrObj.ExchangeInformation.BuildReleaseDate -le [System.Convert]::ToDateTime([DateTime]"15 Oct 2018"))
+        {
+            Write-Yellow("`nYour Exchange server 2016 build is prior to CU11")
+            If ((($RegValue.Split('/'))[4] -eq  4340731) -and ((($RegValueUninstall.Split(''))[3]).Split('=')[1] -match "{2f90ad4f-7290-473e-b00f-73e24f5da717}"))
+            {
+                Write-Green("but NOT vulnerable to CVE-2018-8374.")
+            }
+            Else
+            {
+                Write-Red("and vulnerable to CVE-2018-8374.  See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8374 for more information.")
+            }
+        }
+    }
 }
 
 Function Display-KBHotfixCheckFailSafe {
