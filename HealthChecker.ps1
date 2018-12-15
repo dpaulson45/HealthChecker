@@ -2414,12 +2414,278 @@ param(
     $RegValue = $RegKey.GetValue("DisableLoopbackCheck")
     If ($RegValue)
     {
-        Write-Red("System vulnerable to CVE-2018-8581.  See: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8581 for more information.")  
+        Write-Red("Vulnerable to CVE-2018-8581.")
+        Write-Red("See: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8581 for more information.")
     }
     Else
     {
         Write-Green("System NOT vulnerable to CVE-2018-8581.")
     }
+
+    #Check for CVE-2010-3190 vulnerability
+    #If installed Exchange server release is prior to October 2018
+    #KB2565063 should be installed to fix vulnerability
+
+    Try
+    {
+        $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
+        $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{1D8E6291-B0D5-35EC-8441-6616F567A0F7}")
+        $RegValue = $RegKey.GetValue("{1D8E6291-B0D5-35EC-8441-6616F567A0F7}")
+    }
+    Catch
+    {
+        Write-VerboseOutput("Registry key '{1D8E6291-B0D5-35EC-8441-6616F567A0F7}' not found.")
+    }
+
+    $NotVulnerableBuildDate = [System.Convert]::ToDateTime([DateTime]"1 Oct 2018")
+
+    If ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -ge [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        If ([System.Convert]::ToDateTime([DateTime]$HealthExSvrObj.ExchangeInformation.BuildReleaseDate) -lt $NotVulnerableBuildDate)
+        {
+            Write-Yellow("`nYour Exchange server build is prior to October 2018")
+            If (($RegValue -ne $null) -and ($RegValue -match "10.0.40219"))
+            {
+                Write-Green("System NOT vulnerable to CVE-2010-3190.")
+            }
+            Else
+            {
+                Write-Red("Vulnerable to CVE-2010-3190.")
+                Write-Red("See: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+            }
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2010-3190.")
+        }
+    }
+    Else
+    {
+        Write-Yellow("`nYour Exchange server version is $($HealthExSvrObj.ExchangeInformation.ExchangeFriendlyName):")
+        Write-Yellow("Unable to determine build date.")
+        If (($RegValue -ne $null) -and ($RegValue -match "10.0.40219"))
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2010-3190.")
+        }
+        Else
+        {
+            Write-Red("`nSystem seems to be vulnerable to CVE-2010-3190.")
+            Write-Red("You should check if your build is prior October 2018 and if so, install KB2565063")
+            Write-Red("Build information: https://docs.microsoft.com/en-us/Exchange/new-features/build-numbers-and-release-dates?view=exchserver-2019")
+            Write-Red("Vulnerability information: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+        }
+    }
+
+    #Check for different vulnerabilities
+    #We run checks based on build revision only for Exchange 2013/2016/2019
+    #We check only for year 2018+ vulnerabilities
+    #https://www.cvedetails.com/vulnerability-list/vendor_id-26/product_id-194/Microsoft-Exchange-Server.html
+
+    $AdminDisplayVersion = (Get-ExchangeServer -Identity $Machine_Name).AdminDisplayVersion
+    $iRevision = If($AdminDisplayVersion.Revision -lt 10) {$AdminDisplayVersion.Revision /10} Else {$AdminDisplayVersion.Revision /100}
+    $buildRevision = $AdminDisplayVersion.Build + $iRevision
+
+    If ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2010)
+    {
+        #CVE-2018-8302 affects E2010 but we cannot check for them
+        #CVE-2018-8154 affects E2010 but we cannot check for them
+        #CVE-2018-8151 affects E2010 but we cannot check for them
+        #CVE-2018-0940 affects E2010 but we cannot check for them
+        #CVE-2018-16793 affects E2010 but we cannot check for them
+        #CVE-2018-0924 affects E2010 but we cannot check for them
+
+        Write-Yellow("`nWe cannot check for more vulnerabilities for Exchange 2010.")
+        Write-Yellow("You should take care that your Exchange 2010 is up2date with all security patches installed.")
+    }
+    ElseIf ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        #Check for CVE-2018-8302 and CVE-2018-8374
+        If ($buildRevision -lt 1367.009 -or $buildRevision -lt 1395.007)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8302 and CVE-2018-8374")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8374 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8302.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8374.")
+        }
+
+        #Check for CVE-2018-8265
+        If ($buildRevision -lt 1395.008)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8265")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8265 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8265.")
+        }
+
+        #Check for CVE-2018-8159
+        If ($buildRevision -lt 1365.007 -or $buildRevision -lt 1367.006)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8159")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8159 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8159.")
+        }
+
+        #Check for CVE-2018-8154 and CVE-2018-8151
+        If ($buildRevision -lt 0847.062 -or $buildRevision -lt 1365.007 -or $buildRevision -lt 1367.006)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8154")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8154 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-8151")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8151 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8154.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8151.")
+        }
+
+        #Check for CVE-2018-8448
+        If ($buildRevision -lt 1395.008)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8448")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8448 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8448.")
+        }
+
+        #Check for CVE-2018-0940
+        If ($buildRevision -lt 0847.062 -or $buildRevision -lt 1347.005 -or $buildRevision -lt 1365.003)
+        {
+            Write-Red("`nVulnerable to CVE-2018-0940")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0940 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-0940.")
+        }
+
+        #Check for CVE-2018-0924
+        If ($buildRevision -lt 0847.059 -or $buildRevision -lt 1347.005 -or $buildRevision -lt 1365.003)
+        {
+            Write-Red("`nVulnerable to CVE-2018-0924")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0924 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-0924.")
+        }
+
+    }
+    ElseIf ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2016)
+    {
+        #Check for CVE-2018-8302 and CVE-2018-8374
+        If ($buildRevision -lt 1466.010 -or $buildRevision -lt 1531.006)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8302.")
+            Write-Red("`nVulnerable to CVE-2018-8374.")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8374 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8302.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8374.")
+        }
+
+        #Check for CVE-2018-8604
+        If ($buildRevision -lt 1531.008 -or $buildRevision -lt 1591.011)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8604")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8604 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8604.")
+        }
+
+        #Check for CVE-2018-8448
+        If ($buildRevision -lt 1531.008)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8448")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8448 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8448.")
+        }
+
+        #Check for CVE-2018-8265
+        If ($buildRevision -lt 1531.008)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8265")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8265 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8265.")
+        }
+
+        #Check for CVE-2018-8159, CVE-2018-8154, CVE-2018-8153, CVE-2018-8152 and CVE-2018-8151
+        If ($buildRevision -lt 1415.007 -or $buildRevision -lt 1466.008)
+        {
+            Write-Red("`nVulnerable to CVE-2018-8159")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8159 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-8154")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8154 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-8153")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8153 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-8152")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8152 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-8151")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8152 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8159.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8154.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8153.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8152.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-8151.")
+        }
+
+        #Check for CVE-2018-0941, CVE-2018-0940 and CVE-2018-0924
+        If ($buildRevision -lt 1261.039 -or $buildRevision -lt 1415.004)
+        {
+            Write-Red("`nVulnerable to CVE-2018-0941")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0941 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-0940")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0941 for more information.")
+
+            Write-Red("`nVulnerable to CVE-2018-0924")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0924 for more information.")
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-0941.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-0940.")
+            Write-Green("`nSystem NOT vulnerable to CVE-2018-0924.")
+        }
+    }
+    ElseIf ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2019)
+    {
+        Write-Green("`nThere are no known vulnerabilities within Exchange 2019.")
+    }
+    Else
+    {
+        Write-Red("`nUnknown Exchange server version detected. Unable to check for vulnerabilities.")
+    }
+
+
 }
 
 Function Display-KBHotfixCheckFailSafe {
