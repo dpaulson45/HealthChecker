@@ -2502,7 +2502,10 @@ param(
         #Check for CVE-2018-8302 and CVE-2018-8374
         If ($buildRevision -lt 1367.009 -or $buildRevision -lt 1395.007)
         {
-            Write-Red("`nVulnerable to CVE-2018-8302 and CVE-2018-8374")
+            Write-Red("`nVulnerable to CVE-2018-8302.")
+	    Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8302 for more information.")
+	    
+	    Write-Red("`nVulnerable to CVE-2018-8374.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8374 for more information.")
         }
         Else
@@ -2514,7 +2517,7 @@ param(
         #Check for CVE-2018-8265
         If ($buildRevision -lt 1395.008)
         {
-            Write-Red("`nVulnerable to CVE-2018-8265")
+            Write-Red("`nVulnerable to CVE-2018-8265.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8265 for more information.")
         }
         Else
@@ -2525,7 +2528,7 @@ param(
         #Check for CVE-2018-8159
         If ($buildRevision -lt 1365.007 -or $buildRevision -lt 1367.006)
         {
-            Write-Red("`nVulnerable to CVE-2018-8159")
+            Write-Red("`nVulnerable to CVE-2018-8159.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8159 for more information.")
         }
         Else
@@ -2536,10 +2539,10 @@ param(
         #Check for CVE-2018-8154 and CVE-2018-8151
         If ($buildRevision -lt 0847.062 -or $buildRevision -lt 1365.007 -or $buildRevision -lt 1367.006)
         {
-            Write-Red("`nVulnerable to CVE-2018-8154")
+            Write-Red("`nVulnerable to CVE-2018-8154.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8154 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-8151")
+            Write-Red("`nVulnerable to CVE-2018-8151.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8151 for more information.")
         }
         Else
@@ -2551,7 +2554,7 @@ param(
         #Check for CVE-2018-8448
         If ($buildRevision -lt 1395.008)
         {
-            Write-Red("`nVulnerable to CVE-2018-8448")
+            Write-Red("`nVulnerable to CVE-2018-8448.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8448 for more information.")
         }
         Else
@@ -2562,7 +2565,7 @@ param(
         #Check for CVE-2018-0940
         If ($buildRevision -lt 0847.062 -or $buildRevision -lt 1347.005 -or $buildRevision -lt 1365.003)
         {
-            Write-Red("`nVulnerable to CVE-2018-0940")
+            Write-Red("`nVulnerable to CVE-2018-0940.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0940 for more information.")
         }
         Else
@@ -2573,7 +2576,7 @@ param(
         #Check for CVE-2018-0924
         If ($buildRevision -lt 0847.059 -or $buildRevision -lt 1347.005 -or $buildRevision -lt 1365.003)
         {
-            Write-Red("`nVulnerable to CVE-2018-0924")
+            Write-Red("`nVulnerable to CVE-2018-0924.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0924 for more information.")
         }
         Else
@@ -2588,6 +2591,8 @@ param(
         If ($buildRevision -lt 1466.010 -or $buildRevision -lt 1531.006)
         {
             Write-Red("`nVulnerable to CVE-2018-8302.")
+	    Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8302 for more information.")
+	    
             Write-Red("`nVulnerable to CVE-2018-8374.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8374 for more information.")
         }
@@ -2600,7 +2605,7 @@ param(
         #Check for CVE-2018-8604
         If ($buildRevision -lt 1531.008 -or $buildRevision -lt 1591.011)
         {
-            Write-Red("`nVulnerable to CVE-2018-8604")
+            Write-Red("`nVulnerable to CVE-2018-8604.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8604 for more information.")
         }
         Else
@@ -2611,7 +2616,7 @@ param(
         #Check for CVE-2018-8448
         If ($buildRevision -lt 1531.008)
         {
-            Write-Red("`nVulnerable to CVE-2018-8448")
+            Write-Red("`nVulnerable to CVE-2018-8448.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8448 for more information.")
         }
         Else
@@ -2622,7 +2627,7 @@ param(
         #Check for CVE-2018-8265
         If ($buildRevision -lt 1531.008)
         {
-            Write-Red("`nVulnerable to CVE-2018-8265")
+            Write-Red("`nVulnerable to CVE-2018-8265.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8265 for more information.")
         }
         Else
@@ -2633,20 +2638,20 @@ param(
         #Check for CVE-2018-8159, CVE-2018-8154, CVE-2018-8153, CVE-2018-8152 and CVE-2018-8151
         If ($buildRevision -lt 1415.007 -or $buildRevision -lt 1466.008)
         {
-            Write-Red("`nVulnerable to CVE-2018-8159")
+            Write-Red("`nVulnerable to CVE-2018-8159.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8159 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-8154")
+            Write-Red("`nVulnerable to CVE-2018-8154.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8154 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-8153")
+            Write-Red("`nVulnerable to CVE-2018-8153.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8153 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-8152")
+            Write-Red("`nVulnerable to CVE-2018-8152.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8152 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-8151")
-            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8152 for more information.")
+            Write-Red("`nVulnerable to CVE-2018-8151.")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-8151 for more information.")
         }
         Else
         {
@@ -2660,13 +2665,13 @@ param(
         #Check for CVE-2018-0941, CVE-2018-0940 and CVE-2018-0924
         If ($buildRevision -lt 1261.039 -or $buildRevision -lt 1415.004)
         {
-            Write-Red("`nVulnerable to CVE-2018-0941")
+            Write-Red("`nVulnerable to CVE-2018-0941.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0941 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-0940")
-            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0941 for more information.")
+            Write-Red("`nVulnerable to CVE-2018-0940.")
+            Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0940 for more information.")
 
-            Write-Red("`nVulnerable to CVE-2018-0924")
+            Write-Red("`nVulnerable to CVE-2018-0924.")
             Write-Red("See: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2018-0924 for more information.")
         }
         Else
