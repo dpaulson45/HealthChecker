@@ -2417,8 +2417,51 @@ param(
 )
     Write-VerboseOutput("Calling: Display-MSExchangeVulnerabilities")
     Write-VerboseOutput("For Server: {0}" -f $HealthExSvrObj.ServerName)
+
+    Function Get-ExSetupDetails {
+    param(
+    [Parameter(Mandatory=$true)][string]$Machine_Name
+    )
+        Write-VerboseOutput("Query ExSetup File Information for machine: {0}" -f $Machine_Name)
+        If ($env:COMPUTERNAME -match $Machine_Name)
+        {
+            Write-VerboseOutput("Computer: {0} is localhost" -f $Machine_Name)
+            $EXSetup = Get-Command ExSetup | ForEach {$_.FileVersionInfo}
+        }
+        Else
+        {
+            Write-VerboseOutput("Computer: {0} is remote machine" -f $Machine_Name)
+            $EXSetup = Invoke-Command -ComputerName $Machine_Name -ScriptBlock {Get-Command ExSetup | ForEach {$_.FileVersionInfo}}
+        }
+        return $EXSetup
+    }
+
+    Function Test-VulnerabilitiesByBuildNumbersAndDisplay{
+    param(
+    [Parameter(Mandatory=$true)][object]$ExDetailsObject,
+    [Parameter(Mandatory=$true)][double]$SecurityFixedBuild,
+    [Parameter(Mandatory=$true)][string]$CVEName
+    )
+        Write-VerboseOutput("Testing CVE: {0} | Security Fix Build: {1}" -f $CVEName, $SecurityFixedBuild)
+        If ($ExDetailsObject.FileBuildPart -le ($SecurityFixedBuild.toString()).Split(",")[0])
+        {
+            Write-VerboseOutput("Matching Exchange Build found {0}. Checking for Exchange Revision" -f $ExDetailsObject.FileBuildPart)
+            If ($ExDetailsObject.FilePrivatePart -lt ($SecurityFixedBuild.toString()).Split(",")[1])
+            {
+                Write-Red("System vulnerable to {0}.`r`n`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{1} for more information." -f $CVEName, $CVEName)
+            }
+            Else
+            {
+                Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{1}" -f $CVEName, $CVEName)
+            }
+        }
+        Else
+        {
+            Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{1}" -f $CVEName, $CVEName)
+        }
+    }
     
-    Write-Grey("`r`nVulnerability Check:")
+    Write-Grey("`r`nVulnerability Check:`r`n")
 
     #Check for CVE-2018-8581 vulnerability
     #LSA Reg Location "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
@@ -2429,11 +2472,303 @@ param(
     $RegValue = $RegKey.GetValue("DisableLoopbackCheck")
     If ($RegValue)
     {
-        Write-Red("System vulnerable to CVE-2018-8581.  See: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8581 for more information.")  
+        Write-Red("System vulnerable to CVE-2018-8581.`r`n`tSee: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8581 for more information.")  
     }
     Else
     {
-        Write-Green("System NOT vulnerable to CVE-2018-8581.")
+        Write-VerboseOutput("System NOT vulnerable to CVE-2018-8581.")
+    }
+
+    #Check for CVE-2010-3190 vulnerability
+    #If installed Exchange server release is prior to October 2018
+    #KB2565063 should be installed to fix vulnerability
+
+    Try
+    {
+        $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
+        $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{1D8E6291-B0D5-35EC-8441-6616F567A0F7}")
+        $KB2565063_RegValue = $RegKey.GetValue("DisplayVersion")
+        $KB2565063_RegValueInstallDate = $RegKey.GetValue("InstallDate")
+    }
+    Catch
+    {
+        Write-VerboseOutput("Registry key '{1D8E6291-B0D5-35EC-8441-6616F567A0F7}' not found.")
+    }
+
+    $NotVulnerableBuildDate = [System.Convert]::ToDateTime([DateTime]"1 Oct 2018")
+
+    If ($HealthExSvrObj.ExchangeInformation.ExchangeVersion -ge [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        If ([System.Convert]::ToDateTime([DateTime]$HealthExSvrObj.ExchangeInformation.BuildReleaseDate) -lt $NotVulnerableBuildDate)
+        {
+            Write-Yellow("`nYour Exchange server build is prior to October 2018")
+
+            If (($KB2565063_RegValue -ne $null) -and ($KB2565063_RegValue -match "10.0.40219"))
+            {
+                Try
+                {
+                    $UnableToDetermineExchangeInstallDate = $false
+                    $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{CD981244-E9B8-405A-9026-6AEB9DCEF1F1}")
+                    $E1316_RegValueInstallDate = $RegKey.GetValue("InstallDate")
+                }
+                Catch
+                {
+                    $UnableToDetermineExchangeInstallDate = $true
+                }
+
+                If ($UnableToDetermineExchangeInstallDate -eq $false)
+                {
+                    If ((([DateTime]::ParseExact($KB2565063_RegValueInstallDate,”yyyyMMdd”,$null))) -lt (([DateTime]::ParseExact($E1316_RegValueInstallDate,”yyyyMMdd”,$null))))
+                    {
+                        Write-Red("Vulnerable to CVE-2010-3190.`r`n`tSee: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+                    }
+                    Else
+                    {
+                        Write-Green("System NOT vulnerable to CVE-2010-3190.")
+                    }
+                }
+                Else
+                {
+                    Write-Red("Unable to determine Exchange server install date!")
+                    Write-Red("Potentially vulnerable to CVE-2010-3190.`r`n`tSee: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+                }
+            }
+            Else
+            {
+                Write-Red("Vulnerable to CVE-2010-3190.`r`n`tSee: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+            }
+        }
+        Else
+        {
+            Write-Green("`nSystem NOT vulnerable to CVE-2010-3190.")
+        }
+    }
+    Else
+    {
+        Write-Yellow("`nYour Exchange server version is $($HealthExSvrObj.ExchangeInformation.ExchangeFriendlyName):")
+        Write-Yellow("Unable to determine build date.")
+
+        If (($KB2565063_RegValue -ne $null) -and ($KB2565063_RegValue -match "10.0.40219"))
+        {
+            Try
+            {
+                $UnableToDetermineExchangeInstallDate = $false
+                $RegKey = $reg.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{4934D1EA-BE46-48B1-8847-F1AF20E892C1}")
+                $E2010_RegValueInstallDate = $RegKey.GetValue("InstallDate")
+            }
+            Catch
+            {
+                $UnableToDetermineExchangeInstallDate = $true
+            }
+
+            If ($UnableToDetermineExchangeInstallDate -eq $false)
+            {
+                If ((([DateTime]::ParseExact($KB2565063_RegValueInstallDate,”yyyyMMdd”,$null))) -lt (([DateTime]::ParseExact($E2010_RegValueInstallDate,”yyyyMMdd”,$null))))
+                {
+                    Write-Red("Potentially Vulnerable to CVE-2010-3190.`r`n`tSee: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+                }
+                Else
+                {
+                    Write-Green("System NOT vulnerable to CVE-2010-3190.")
+                }
+            }
+            Else
+            {
+                Write-Red("Unable to determine Exchange server install date!")
+                Write-Red("Potentially vulnerable to CVE-2010-3190.`r`n`tSee: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+            }
+        }
+        Else
+        {
+            Write-Red("`nPotentially vulnerable to CVE-2010-3190.")
+            Write-Red("You should check if your build is prior October 2018 and if so, install KB2565063")
+            Write-Red("See: https://blogs.technet.microsoft.com/exchange/2018/10/09/ms11-025-required-on-exchange-server-versions-released-before-october-2018/ for more information.")
+        }
+    }
+
+    #Check for different vulnerabilities
+    #We run checks based on build revision only for Exchange 2013/2016/2019
+    #We check only for year 2018+ vulnerabilities
+    #https://www.cvedetails.com/vulnerability-list/vendor_id-26/product_id-194/Microsoft-Exchange-Server.html
+    
+    $EXSetupDetails = Get-ExSetupDetails -Machine_Name $Machine_Name
+    Write-VerboseOutput("Exchange Build Number: {0}" -f $EXSetupDetails.FileVersion)  
+    Write-VerboseOutput("Exchange Build Revision: {0}.{1}" -f $EXSetupDetails.FileBuildPart, $EXSetupDetails.FilePrivatePart)
+    Write-VerboseOutput("Exchange CU: {0}" -f ($exchangeCU = $HealthExSvrObj.ExchangeInformation.ExchangeBuildObject.CU))
+
+    if($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2010)
+    {
+        #CVE-2018-8302 affects E2010 but we cannot check for them
+        #CVE-2018-8154 affects E2010 but we cannot check for them
+        #CVE-2018-8151 affects E2010 but we cannot check for them
+        #CVE-2018-0940 affects E2010 but we cannot check for them
+        #CVE-2018-0924 affects E2010 but we cannot check for them
+        #CVE-2018-16793 affects E2010 but we cannot check for them
+        #CVE-2019-0588 affects E2010 but we cannot check for them
+        #Could do get the build number of exsetup, but not really needed with Exchange 2010 as it is going out of support soon. 
+        Write-Yellow("`nWe cannot check for more vulnerabilities for Exchange 2010.")
+        Write-Yellow("You should make sure that your Exchange 2010 Servers are up to date with all security patches.")
+    }
+    elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        #Need to know which CU we are on, as that would be the best to break up the security patches 
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU18)
+        {
+            #CVE-2018-0924
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1347.5 -CVEName "CVE-2018-0924" 
+            #CVE-2018-0940
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1347.5 -CVEName "CVE-2018-0940" 
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU19)
+        {
+            #to avoid duplicates only do these ones if we are equal to the current CU as they would have been caught on the previous CU if we are at a less CU
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU19)
+            {
+                #CVE-2018-0924
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1365.3 -CVEName "CVE-2018-0924" 
+                #CVE-2018-0940
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1365.3 -CVEName "CVE-2018-0940" 
+            }
+            #CVE-2018-8151 
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1365.7 -CVEName "CVE-2018-8151"
+            #CVE-2018-8154
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1365.7 -CVEName "CVE-2018-8154"
+            #CVE-2018-8159
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1365.7 -CVEName "CVE-2018-8159"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU20)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU20)
+            {
+                #CVE-2018-8151
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1367.6 -CVEName "CVE-2018-8151"
+                #CVE-2018-8154
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1367.6 -CVEName "CVE-2018-8154"
+                #CVE-2018-8159 
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1367.6 -CVEName "CVE-2018-8159"
+            }
+            #CVE-2018-8302
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1367.9 -CVEName "CVE-2018-8302"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU21)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU21)
+            {
+                #CVE-2018-8302
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.7 -CVEName "CVE-2018-8302"
+                #CVE-2019-0588
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.10 -CVEName "CVE-2019-0588"
+            }
+            #CVE-2018-8265
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.8 -CVEName "CVE-2018-8265"
+            #CVE-2018-8448
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.8 -CVEName "CVE-2018-8448"
+        }
+    }
+    elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2016)
+    {
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU7)
+        {
+            #CVE-2018-0924
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1261.39 -CVEName "CVE-2018-0924"
+            #CVE-2018-0940
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1261.39 -CVEName "CVE-2018-0940"
+            #CVE-2018-0941
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1261.39 -CVEName "CVE-2018-0941"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU8)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU8)
+            {
+                #CVE-2018-0924
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.4 -CVEName "CVE-2018-0924"
+                #CVE-2018-0940
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.4 -CVEName "CVE-2018-0940"
+                #CVE-2018-0941
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.4 -CVEName "CVE-2018-0941"
+
+            }
+            #CVE-2018-8151
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.7 -CVEName "CVE-2018-8151"
+            #CVE-2018-8152
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.7 -CVEName "CVE-2018-8152"
+            #CVE-2018-8153
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.7 -CVEName "CVE-2018-8153"
+            #CVE-2018-8154
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.7 -CVEName "CVE-2018-8154"
+            #CVE-2018-8159
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1415.7 -CVEName "CVE-2018-8159"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU9)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU9)
+            {
+                #CVE-2018-8151
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.8 -CVEName "CVE-2018-8151"
+                #CVE-2018-8152
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.8 -CVEName "CVE-2018-8152"
+                #CVE-2018-8153
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.8 -CVEName "CVE-2018-8153"
+                #CVE-2018-8154
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.8 -CVEName "CVE-2018-8154"
+                #CVE-2018-8159
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.8 -CVEName "CVE-2018-8159"
+            }
+            #CVE-2018-8374
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.9 -CVEName "CVE-2018-8374"
+            #CVE-2018-8302
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1466.9 -CVEName "CVE-2018-8302"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU10)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU10)
+            {
+                #CVE-2018-8374
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.6 -CVEName "CVE-2018-8374"
+                #CVE-2018-8302
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.6 -CVEName "CVE-2018-8302"
+            }
+            #CVE-2018-8265
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.8 -CVEName "CVE-2018-8265"
+            #CVE-2018-8448
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.8 -CVEName "CVE-2018-8448"
+            #CVE-2018-8604
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.8 -CVEName "CVE-2018-8604"
+            #CVE-2019-0586
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.10 -CVEName "CVE-2019-0586"
+            #CVE-2019-0588
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1531.10 -CVEName "CVE-2019-0588"
+        }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU11)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU11)
+            {
+                #CVE-2018-8604
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1591.11 -CVEName "CVE-2018-8604"
+                #CVE-2019-0586
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1591.13 -CVEName "CVE-2019-0586"
+                #CVE-2019-0588
+                Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1591.13 -CVEName "CVE-2019-0588"
+            }
+        }
+    }
+    elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2019)
+    {
+        If($exchangeCU -le [HealthChecker.ExchangeCULevel]::RTM)
+        {
+            #CVE-2019-0586
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 221.14 -CVEName "CVE-2019-0586"
+            #CVE-2019-0588
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 221.14 -CVEName "CVE-2019-0588"
+        }
+        Else
+        {
+            Write-VerboseOutput("`nThere are no current known vulnerabilities within Exchange 2019 CU1.")
+        }
+    }
+    else 
+    {
+        Write-Red("`nUnknown Exchange Server Version. Unable to check for vulnerabilities.")     
     }
 
 }
