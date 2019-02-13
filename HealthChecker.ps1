@@ -2649,7 +2649,7 @@ param(
             #CVE-2018-8448
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.8 -CVEName "CVE-2018-8448"
         }
-	if($exchangeCU -le [HealthChecker.ExchangeCULevel::CU22)
+	if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU22)
 	{
 	    if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU22)
 	    {
