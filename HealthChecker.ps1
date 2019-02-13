@@ -2463,22 +2463,6 @@ param(
     
     Write-Grey("`r`nVulnerability Check:`r`n")
 
-    #Check for CVE-2018-8581 vulnerability
-    #LSA Reg Location "HKLM:\SYSTEM\CurrentControlSet\Control\Lsa"
-    #Check if valuename DisableLoopbackCheck exists
-
-    $Reg = [Microsoft.Win32.RegistryKey]::OpenRemoteBaseKey('LocalMachine', $Machine_Name)
-    $RegKey = $reg.OpenSubKey("SYSTEM\CurrentControlSet\Control\Lsa")
-    $RegValue = $RegKey.GetValue("DisableLoopbackCheck")
-    If ($RegValue)
-    {
-        Write-Red("System vulnerable to CVE-2018-8581.`r`n`tSee: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2018-8581 for more information.")  
-    }
-    Else
-    {
-        Write-VerboseOutput("System NOT vulnerable to CVE-2018-8581.")
-    }
-
     #Check for CVE-2010-3190 vulnerability
     #If installed Exchange server release is prior to October 2018
     #KB2565063 should be installed to fix vulnerability
@@ -2601,6 +2585,7 @@ param(
         #CVE-2018-8302 affects E2010 but we cannot check for them
         #CVE-2018-8154 affects E2010 but we cannot check for them
         #CVE-2018-8151 affects E2010 but we cannot check for them
+	#CVE-2018-8581 affect E2010 but we cannot check for them
         #CVE-2018-0940 affects E2010 but we cannot check for them
         #CVE-2018-0924 affects E2010 but we cannot check for them
         #CVE-2018-16793 affects E2010 but we cannot check for them
@@ -2664,6 +2649,15 @@ param(
             #CVE-2018-8448
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1395.8 -CVEName "CVE-2018-8448"
         }
+	if($exchangeCU -le [HealthChecker.ExchangeCULevel::CU22)
+	{
+	    if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU22)
+	    {
+	        Write-Verbose("`nThere are no known vulnerabilities within Exchange 2013 CU22.")
+	    }
+	    #CVE-2018-8581
+	    Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1473.3 -CVEName "CVE-2018-8581"
+	}
     }
     elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2016)
     {
@@ -2751,20 +2745,34 @@ param(
                 Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1591.13 -CVEName "CVE-2019-0588"
             }
         }
+	if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU12)
+	{
+	    if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU12)
+	    {
+	        Write-VerboseOutput("`nThere are no current known vulnerabilities within Exchange 2016 CU12.")
+	    }
+	    #CVE-2018-8581
+	    Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 1713.5 -CVEName "CVE-2018-8581"
+	}
     }
     elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2019)
     {
-        If($exchangeCU -le [HealthChecker.ExchangeCULevel]::RTM)
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::RTM)
         {
             #CVE-2019-0586
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 221.14 -CVEName "CVE-2019-0586"
             #CVE-2019-0588
-            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 221.14 -CVEName "CVE-2019-0588"
+            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 221.14 -CVEName "CVE-2019-0588"    
         }
-        Else
-        {
-            Write-VerboseOutput("`nThere are no current known vulnerabilities within Exchange 2019 CU1.")
-        }
+	if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU1)
+	{
+	    if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU1)
+	    {
+	        Write-VerboseOutput("`nThere are no current known vulnerabilities within Exchange 2019 CU1.")
+	    }
+	    #CVE-2018-8581
+	    Test-VulnerabilitiesByBuildNumbersAndDisplay -ExDetailsObject $EXSetupDetails -SecurityFixedBuild 330.6 -CVEName "CVE-2018-8581"
+	}
     }
     else 
     {
