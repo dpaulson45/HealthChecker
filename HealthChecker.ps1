@@ -454,12 +454,62 @@ Function Write-Break {
 ############################################################
 ############################################################
 
-Function Invoke-CatchActions{
+Function Invoke-CatchActions {
 
     Write-VerboseOutput("Calling: Invoke-Actions")
     $Script:ErrorsExcludedCount++
     $Script:ErrorsExcluded += $Error[0]
 
+}
+
+Function Test-ScriptVersion {
+param(
+[Parameter(Mandatory=$true)][string]$apiUri,
+[Parameter(Mandatory=$true)][string]$RepoOwner,
+[Parameter(Mandatory=$true)][string]$RepoName,
+[Parameter(Mandatory=$true)][double]$CurrentVersion
+)
+    Write-VerboseOutput("Calling: Test-ScriptVersion")
+    
+    [hashtable]$Return = @{}
+
+    if((Test-Connection -ComputerName $apiUri -Count 1 -Quiet) -eq $true)
+    {
+        try
+        {
+            [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+            $ReleaseInformation = (ConvertFrom-Json(Invoke-WebRequest -Uri "https://$apiUri/repos/$RepoOwner/$RepoName/releases/latest"))
+        }
+        catch
+        {
+            Invoke-CatchActions
+            Write-VerboseOutput("Failed to run webrequest")
+        }
+
+        if($CurrentVersion -ge [double](($ReleaseInformation.tag_name).Split("v"))[1])
+        {
+            Write-VerboseOutput("We're online: '{0}' connected successful" -f $apiUri)
+            Write-VerboseOutput("Version '{0}' is the latest version" -f $CurrentVersion)
+            $Return.Online = $true
+            $Return.Current = $true
+        }
+        else
+        {
+            Write-VerboseOutput("We're online: '{0}' connected successful" -f $apiUri)
+            Write-VerboseOutput("Version '{0}' is outdated" -f $CurrentVersion)
+            $Return.Online = $true
+            $Return.Current = $false
+        }
+    }
+    else
+    {
+        Write-VerboseOutput("We're offline: Unable to connect '{0}'" -f $apiUri)
+        Write-VerboseOutput("Unable to determin if version '{0}' is current" -f $CurrentVersion)
+        $Return.Online = $false
+        $Return.Current = $false
+    }
+
+    return $Return
 }
 
 Function Invoke-RegistryHandler {
@@ -3093,8 +3143,22 @@ param(
     ####################
     #Header information#
     ####################
+    
+    $VersionInfo = Test-ScriptVersion -apiUri "api.github.com" -RepoOwner "dpaulson45" -RepoName "HealthChecker" -CurrentVersion $healthCheckerVersion
 
-    Write-Green("Exchange Health Checker version " + $healthCheckerVersion)
+    if($VersionInfo.Online -eq $false)
+    {
+        Write-Yellow("Unable to check if Health Checker version {0} is the latest" -f $healthCheckerVersion)
+    }
+    elseif(($VersionInfo.Online -eq $true) -and ($VersionInfo.Current -eq $true))
+    {
+        Write-Green("Exchange Health Checker version {0} is current" -f $healthCheckerVersion)
+    }
+    else
+    {
+        Write-Red("Exchange Health Checker version {0} is outdated" -f $healthCheckerVersion)
+    }
+
     Write-Green("System Information Report for " + $HealthExSvrObj.ServerName + " on " + $date) 
     Write-Break
     Write-Break
