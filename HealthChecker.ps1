@@ -108,6 +108,7 @@ Note to self. "New Release Update" are functions that i need to update when a ne
 
 $healthCheckerVersion = "2.31"
 $VirtualizationWarning = @"
+[DateTime]$healthCheckerVersionDate = "14 February 2019"
 Virtual Machine detected.  Certain settings about the host hardware cannot be detected from the virtual machine.  Verify on the VM Host that: 
 
     - There is no more than a 1:1 Physical Core to Virtual CPU ratio (no oversubscribing)
@@ -467,7 +468,8 @@ param(
 [Parameter(Mandatory=$true)][string]$apiUri,
 [Parameter(Mandatory=$true)][string]$RepoOwner,
 [Parameter(Mandatory=$true)][string]$RepoName,
-[Parameter(Mandatory=$true)][double]$CurrentVersion
+[Parameter(Mandatory=$true)][double]$CurrentVersion,
+[Parameter(Mandatory=$true)][DateTime]$OfflineReleaseDate
 )
     Write-VerboseOutput("Calling: Test-ScriptVersion")
     
@@ -490,6 +492,7 @@ param(
         {
             Write-VerboseOutput("We're online: '{0}' connected successful" -f $apiUri)
             Write-VerboseOutput("Version '{0}' is the latest version" -f $CurrentVersion)
+	    $Return.OfflineAge = 0
             $Return.Online = $true
             $Return.Current = $true
         }
@@ -497,6 +500,7 @@ param(
         {
             Write-VerboseOutput("We're online: '{0}' connected successful" -f $apiUri)
             Write-VerboseOutput("Version '{0}' is outdated" -f $CurrentVersion)
+	    $Return.OfflineAge = 0
             $Return.Online = $true
             $Return.Current = $false
         }
@@ -504,7 +508,10 @@ param(
     else
     {
         Write-VerboseOutput("We're offline: Unable to connect '{0}'" -f $apiUri)
-        Write-VerboseOutput("Unable to determin if version '{0}' is current" -f $CurrentVersion)
+        Write-VerboseOutput("Unable to determin online if version '{0}' is current" -f $CurrentVersion)
+	Write-VerboseOutput("Running offline script version check")
+	$OfflineTimeSpan = (Get-Date) - $OfflineReleaseDate
+	$Return.OfflineAge = $OfflineTimeSpan.Days
         $Return.Online = $false
         $Return.Current = $false
     }
@@ -3144,15 +3151,26 @@ param(
     #Header information#
     ####################
     
-    $VersionInfo = Test-ScriptVersion -apiUri "api.github.com" -RepoOwner "dpaulson45" -RepoName "HealthChecker" -CurrentVersion $healthCheckerVersion
+    $VersionInfo = Test-ScriptVersion -apiUri "api.github.com" -RepoOwner "dpaulson45" -RepoName "HealthChecker" -CurrentVersion $healthCheckerVersion -OfflineReleaseDate $healthCheckerVersionDate
 
     if($VersionInfo.Online -eq $false)
     {
-        Write-Yellow("Unable to check if Health Checker version {0} is the latest" -f $healthCheckerVersion)
+        if($VersionInfo.OfflineAge -ge 180)
+        {
+            Write-Red("Exchange Health Checker version is {0} days old and most probable outdated" -f $VersionInfo.OfflineAge)
+        }
+        elseif($VersionInfo.OfflineAge -ge 90)
+        {
+            Write-Yellow("Exchange Health Checker version is {0} days old and probable outdated" -f $VersionInfo.OfflineAge)
+        }
+        else
+        {
+            Write-Green("Exchange Health Checker version is {0} days old and most likely the current version" -f $VersionInfo.OfflineAge)
+        }
     }
     elseif(($VersionInfo.Online -eq $true) -and ($VersionInfo.Current -eq $true))
     {
-        Write-Green("Exchange Health Checker version {0} is current" -f $healthCheckerVersion)
+        Write-Green("Exchange Health Checker version " + $healthCheckerVersion)
     }
     else
     {
