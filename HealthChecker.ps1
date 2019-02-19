@@ -459,7 +459,44 @@ Function Invoke-CatchActions{
     Write-VerboseOutput("Calling: Invoke-Actions")
     $Script:ErrorsExcludedCount++
     $Script:ErrorsExcluded += $Error[0]
+}
 
+Function Use-Culture
+{
+param(
+[Parameter(Mandatory=$true)][System.Globalization.CultureInfo]$Culture,
+[Parameter(Mandatory=$true)][ScriptBlock]$Scriptblock
+)
+    Write-VerboseOutput("Calling: Use-Culture")
+    $CurrentCulture = [System.Threading.Thread]::CurrentThread.CurrentCulture
+    Write-VerboseOutput("Current culture is {0}" -f $CurrentCulture.Name)
+
+    if($CurrentCulture.Name -notmatch $Culture)
+    {
+        try
+        {
+            [System.Threading.Thread]::CurrentThread.CurrentCulture = $Culture
+        }
+        catch
+        {
+            Invoke-CatchActions
+            Write-VerboseOutput("Failed to set culture to {0}" -f $Culture)
+        }
+
+        Write-VerboseOutput("Running Scriptblock with culture {0}" -f $Culture)
+        Invoke-Command -ScriptBlock $Scriptblock
+        
+        try
+        {
+            [System.Threading.Thread]::CurrentThread.CurrentCulture = $CurrentCulture
+            Write-VerboseOutput("Setting culture back to {0}" -f $CurrentCulture)
+        }
+        catch
+        {
+            Invoke-CatchActions
+            Write-VerboseOutput("Failed to set culture back to {0}" -f $CurrentCulture)
+        }
+    }
 }
 
 Function Invoke-RegistryHandler {
@@ -2597,7 +2634,7 @@ param(
     #We check only for year 2018+ vulnerabilities
     #https://www.cvedetails.com/vulnerability-list/vendor_id-26/product_id-194/Microsoft-Exchange-Server.html 
 
-    [double]$buildRevision = [System.Convert]::ToDouble(("{0}.{1}" -f $HealthExSvrObj.ExchangeInformation.ExchangeSetup.FileBuildPart, $HealthExSvrObj.ExchangeInformation.ExchangeSetup.FilePrivatePart))
+    [double]$buildRevision = Use-Culture -Culture en-US -Scriptblock {[System.Convert]::ToDouble(("{0}.{1}" -f $HealthExSvrObj.ExchangeInformation.ExchangeSetup.FileBuildPart, $HealthExSvrObj.ExchangeInformation.ExchangeSetup.FilePrivatePart))}
     Write-VerboseOutput("Exchange Build Revision: {0}" -f $buildRevision) 
     Write-VerboseOutput("Exchange CU: {0}" -f ($exchangeCU = $HealthExSvrObj.ExchangeInformation.ExchangeBuildObject.CU))
 
