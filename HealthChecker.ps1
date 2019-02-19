@@ -3170,7 +3170,7 @@ param(
     }
     elseif(($VersionInfo.Online -eq $true) -and ($VersionInfo.Current -eq $true))
     {
-        Write-Green("Exchange Health Checker version " + $healthCheckerVersion)
+        Write-Green("Exchange Health Checker version {0} is the current version" -f $healthCheckerVersion)
     }
     else
     {
