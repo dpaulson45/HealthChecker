@@ -107,8 +107,8 @@ Note to self. "New Release Update" are functions that i need to update when a ne
 #>
 
 $healthCheckerVersion = "2.31"
-$VirtualizationWarning = @"
 [DateTime]$healthCheckerVersionDate = "14 February 2019"
+$VirtualizationWarning = @"
 Virtual Machine detected.  Certain settings about the host hardware cannot be detected from the virtual machine.  Verify on the VM Host that: 
 
     - There is no more than a 1:1 Physical Core to Virtual CPU ratio (no oversubscribing)
