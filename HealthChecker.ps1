@@ -473,6 +473,7 @@ Function Write-Break {
 
 Function Invoke-CatchActions{
 
+    Set-ScriptLogFileLocation -FileName "HealthCheck" -IncludeServerName $true
     Write-VerboseOutput("Calling: Invoke-Actions")
     $Script:ErrorsExcludedCount++
     $Script:ErrorsExcluded += $Error[0]
