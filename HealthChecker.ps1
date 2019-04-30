@@ -347,7 +347,11 @@ using System.Collections;
             public bool IPv6DisabledOnNICs; //value that determines if we have IPv6 disabled on some NICs or not. 
             public string TimeZone; //value to stores the current timezone of the server. 
             public System.Array TLSSettings;
-            public NetDefaultTlsVersionObject NetDefaultTlsVersion; 
+            public NetDefaultTlsVersionObject NetDefaultTlsVersion;
+	    public string BootUpTimeInDays;
+            public string BootUpTimeInHours;
+            public string BootUpTimeInMinutes;
+            public string BootUpTimeInSeconds;
         }
 
         public enum TLSVersion
@@ -1429,6 +1433,7 @@ param(
     Write-VerboseOutput("Passed: $Machine_Name")
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
+    $temp_date = Get-Date
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
     try
     {
@@ -1444,6 +1449,10 @@ param(
     $os_obj.OSVersion = (Get-OperatingSystemVersion -OS_Version $os_obj.OSVersionBuild)
     $os_obj.OperatingSystemName = $os.Caption
     $os_obj.OperatingSystem = $os
+    $os_obj.BootUpTimeInDays = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Days
+    $os_obj.BootUpTimeInHours = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Hours
+    $os_obj.BootUpTimeInMinutes = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Minutes
+    $os_obj.BootUpTimeInSeconds = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Seconds
     
     if($plan -ne $null)
     {
@@ -3510,6 +3519,7 @@ param(
     }
 
     Write-Grey("`tOperating System: " + $HealthExSvrObj.OSVersion.OperatingSystemName)
+    Write-Grey("`tSystem up since: {0} day(s), {1} hour(s), {2} minute(s), {3} second(s)" -f $HealthExSvrObj.OSVersion.BootUpTimeInDays, $HealthExSvrObj.OSVersion.BootUpTimeInHours, $HealthExSvrObj.OSVersion.BootUpTimeInMinutes, $HealthExSvrObj.OSVersion.BootUpTimeInSeconds)
     Write-Grey("`tTime Zone: {0}" -f $HealthExSvrObj.OSVersion.TimeZone)
     Write-Grey("`tExchange: " + $HealthExSvrObj.ExchangeInformation.ExchangeFriendlyName)
     Write-Grey("`tBuild Number: " + $HealthExSvrObj.ExchangeInformation.ExchangeBuildNumber)
