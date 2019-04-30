@@ -1433,7 +1433,6 @@ param(
     Write-VerboseOutput("Passed: $Machine_Name")
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
-    $temp_currentdate = Get-Date
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
     try
     {
@@ -1445,6 +1444,7 @@ param(
         Invoke-CatchActions
         $plan = $null
     }
+    $temp_currentdate = Get-Date
     $temp_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)
     $os_obj.OSVersionBuild = $os.Version
     $os_obj.OSVersion = (Get-OperatingSystemVersion -OS_Version $os_obj.OSVersionBuild)
