@@ -1433,7 +1433,7 @@ param(
     Write-VerboseOutput("Passed: $Machine_Name")
 
     [HealthChecker.OperatingSystemObject]$os_obj = New-Object HealthChecker.OperatingSystemObject
-    $temp_date = Get-Date
+    $temp_currentdate = Get-Date
     $os = Get-WmiObject -ComputerName $Machine_Name -Class Win32_OperatingSystem
     try
     {
@@ -1445,14 +1445,15 @@ param(
         Invoke-CatchActions
         $plan = $null
     }
+    $temp_uptime = [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)
     $os_obj.OSVersionBuild = $os.Version
     $os_obj.OSVersion = (Get-OperatingSystemVersion -OS_Version $os_obj.OSVersionBuild)
     $os_obj.OperatingSystemName = $os.Caption
     $os_obj.OperatingSystem = $os
-    $os_obj.BootUpTimeInDays = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Days
-    $os_obj.BootUpTimeInHours = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Hours
-    $os_obj.BootUpTimeInMinutes = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Minutes
-    $os_obj.BootUpTimeInSeconds = ($temp_date - [Management.ManagementDateTimeConverter]::ToDateTime($os.lastbootuptime)).Seconds
+    $os_obj.BootUpTimeInDays = ($temp_currentdate - $temp_uptime).Days
+    $os_obj.BootUpTimeInHours = ($temp_currentdate - $temp_uptime).Hours
+    $os_obj.BootUpTimeInMinutes = ($temp_currentdate - $temp_uptime).Minutes
+    $os_obj.BootUpTimeInSeconds = ($temp_currentdate - $temp_uptime).Seconds
     
     if($plan -ne $null)
     {
