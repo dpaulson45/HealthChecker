@@ -1,4 +1,4 @@
-﻿<#
+<#
 .NOTES
 	Name: HealthChecker.ps1
 	Original Author: Marc Nivens
@@ -82,7 +82,7 @@
 param(
 [Parameter(Mandatory=$false,ParameterSetName="HealthChecker")]
 [Parameter(Mandatory=$false,ParameterSetName="MailboxReport")]
-    [string]$Server=($env:COMPUTERNAME),
+    [array]$Server=($env:COMPUTERNAME),
 [Parameter(Mandatory=$false)]
     [ValidateScript({-not $_.ToString().EndsWith('\')})][string]$OutputFilePath = ".",
 [Parameter(Mandatory=$false,ParameterSetName="MailboxReport")]
@@ -5163,14 +5163,19 @@ Function Get-ExchangeDCCoreRatio {
 }
 
 Function Set-ScriptLogFileLocation {
+[CmdletBinding(DefaultParameterSetName="FileName")]
 param(
-[Parameter(Mandatory=$true)][string]$FileName,
-[Parameter(Mandatory=$false)][bool]$IncludeServerName = $false 
+[Parameter(Mandatory=$true,ParameterSetName="FileName")]
+[Parameter(Mandatory=$true,ParameterSetName="IncludeServerName")]
+    [string]$FileName,
+[Parameter(Mandatory=$false,ParameterSetName="IncludeServerName")][bool]$IncludeServerName = $false,
+[Parameter(Mandatory=$true,ParameterSetName="IncludeServerName")][string]$Server
+
 )
     $endName = "-{0}.txt" -f $dateTimeStringFormat
     if($IncludeServerName)
     {
-        $endName = "-{0}{1}" -f $Script:Server, $endName
+        $endName = "-{0}{1}" -f $Server, $endName
     }
     
     $Script:OutputFullPath = "{0}\{1}{2}" -f $OutputFilePath, $FileName, $endName
@@ -5254,23 +5259,38 @@ Function LoadBalancingMain {
     Write-Break
 
 }
-Function HealthCheckerMain {
 
-    Set-ScriptLogFileLocation -FileName "HealthCheck" -IncludeServerName $true 
-    Write-HealthCheckerVersion
-    $HealthObject = Get-HealthCheckerExchangeServer $Server
-    Display-ResultsToScreen $healthObject
-    Get-ErrorsThatOccurred
-    $HealthObject | Export-Clixml -Path $OutXmlFullPath -Encoding UTF8 -Depth 5
-    Write-Grey("Output file written to {0}" -f $Script:OutputFullPath)
-    Write-Grey("Exported Data Object Written to {0} " -f $Script:OutXmlFullPath)
+Function HealthCheckerMain {
+param(
+[Parameter(Mandatory=$true)][array]$Servers
+)
+    $i = 0
+    foreach($Server in $Servers)
+    {
+        $i++
+        Set-ScriptLogFileLocation -FileName "HealthCheck" -IncludeServerName $true -Server $Server
+        if($i -lt 2)
+        {
+            Write-HealthCheckerVersion
+            Write-Grey("{0} servers will be checked" -f $Servers.Count)
+        }
+        $HealthObject = Get-HealthCheckerExchangeServer $Server
+        Display-ResultsToScreen $healthObject
+        Get-ErrorsThatOccurred
+        $HealthObject | Export-Clixml -Path $OutXmlFullPath -Encoding UTF8 -Depth 5
+        Write-Grey("Output file written to {0}" -f $Script:OutputFullPath)
+        Write-Grey("Exported Data Object Written to {0} " -f $Script:OutXmlFullPath)
+    }
 }
+
 Function Main {
-    
+param(
+[Parameter(Mandatory=$true)][array]$Servers
+)    
     if(-not (Is-Admin))
 	{
 		Write-Warning "The script needs to be executed in elevated mode. Start the Exchange Mangement Shell as an Administrator." 
-		sleep 2;
+		sleep 2
 		exit
     }
 
@@ -5280,58 +5300,73 @@ Function Main {
     $Script:date = (Get-Date)
     $Script:dateTimeStringFormat = $date.ToString("yyyyMMddHHmmss")
     
-    if($BuildHtmlServersReport)
-    {
-        Set-ScriptLogFileLocation -FileName "HealthChecker-HTMLServerReport" 
-        New-HtmlServerReport
-        Get-ErrorsThatOccurred
-        sleep 2;
-        exit
-    }
-
-    if((Test-Path $OutputFilePath) -eq $false)
-    {
-        Write-Host "Invalid value specified for -OutputFilePath." -ForegroundColor Red
-        exit 
-    }
-
-    if($LoadBalancingReport)
-    {
-        LoadBalancingMain
-        exit
-    }
-
-    if($DCCoreRatio)
-    {
-        $oldErrorAction = $ErrorActionPreference
-        $ErrorActionPreference = "Stop"
-        try 
+    $i = 0
+    foreach($Server in $Servers)
+    { 
+        if($BuildHtmlServersReport)
         {
-            Get-ExchangeDCCoreRatio
+            Set-ScriptLogFileLocation -FileName "HealthChecker-HTMLServerReport"
+            New-HtmlServerReport
             Get-ErrorsThatOccurred
+            sleep 2
+            exit
         }
-        finally
+
+        if((Test-Path $OutputFilePath) -eq $false)
         {
-            $ErrorActionPreference = $oldErrorAction
+            Write-Host "Invalid value specified for -OutputFilePath." -ForegroundColor Red
             exit 
         }
+
+        if($LoadBalancingReport)
+        {
+            LoadBalancingMain
+            exit
+        }
+
+        if($DCCoreRatio)
+        {
+            $oldErrorAction = $ErrorActionPreference
+            $ErrorActionPreference = "Stop"
+            try 
+            {
+                Get-ExchangeDCCoreRatio
+                Get-ErrorsThatOccurred
+            }
+            finally
+            {
+                $ErrorActionPreference = $oldErrorAction
+                exit
+            }
+        }
+
+	    if($MailboxReport)
+	    {
+            $i++
+            Set-ScriptLogFileLocation -FileName "HealthCheck-MailboxReport" -IncludeServerName $true -Server $Server
+            if($i -lt 2)
+            {
+                Write-HealthCheckerVersion
+                Write-Grey("{0} servers will be checked" -f $Servers.Count)
+            }
+            Get-MailboxDatabaseAndMailboxStatistics -Machine_Name $Server
+            Write-Grey("Output file written to {0}" -f $Script:OutputFullPath)
+            Get-ErrorsThatOccurred
+	    }
     }
-
-	if($MailboxReport)
-	{
-        Set-ScriptLogFileLocation -FileName "HealthCheck-MailboxReport" -IncludeServerName $true 
-        Get-MailboxDatabaseAndMailboxStatistics -Machine_Name $Server
-        Write-Grey("Output file written to {0}" -f $Script:OutputFullPath)
-        Get-ErrorsThatOccurred
+    if($MailboxReport -eq $true)
+    {
         exit
-	}
-
-	HealthCheckerMain
+    }
+    else
+    {
+	    HealthCheckerMain -Server $Servers
+    }
 }
 
 try 
 {
-    Main 
+    Main -Servers $Server
 }
 finally 
 {
