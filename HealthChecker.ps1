@@ -893,6 +893,82 @@ param(
 
 }
 
+Function Get-ExchangeServerMaintenanceState {
+param(
+[Parameter(Mandatory=$true)][object]$HealthExSvrObj
+)
+
+    Write-VerboseOutput("Calling Function: Get-ExchangeServerMaintenanceState")
+    $returnObj = New-Object PSCustomObject
+
+    if($HealthExSvrObj.ExchangeInformation.ExchangeVersion -le [HealthChecker.ExchangeVersion]::Exchange2010)
+    {
+        Write-VerboseOutput("We cannot check Maintenance State for Server: {0} - Exchange version is <= 2010" -f $HealthExSvrObj.ServerName)
+        $MaintenanceCheckSupported = $false
+    }
+    elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2013)
+    {
+        Write-VerboseOutput("Exchange 2013 detected on Server: {0} - We have to check for server role." -f $HealthExSvrObj.ServerName)
+        $MaintenanceCheckSupported = $true
+        $ServerComponentState = Get-ServerComponentState -Identity $HealthExSvrObj.ServerName
+
+        if(($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::MultiRole))
+        {
+            Write-VerboseOutput("MultiRole Server detected")
+            $MailboxServerInformation = Get-MailboxServer -Identity $HealthExSvrObj.ServerName
+            $ServerWideOfflineLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+            $ServerWideOfflineRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+            $HubTransportLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "HubTransport"}).State
+            $HubTransportRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "HubTransport"}).State
+            $UMCallRouterLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "UMCallRouter"}).State
+            $UMCallRouterRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "UMCallRouter"}).State
+            $DatabaseCopyActivationDisabledAndMoveNowState = $MailboxServerInformation.DatabaseCopyActivationDisabledAndMoveNow
+            $DatabaseCopyAutoActivationPolicyState = $MailboxServerInformation.DatabaseCopyAutoActivationPolicy
+            $ClusterNodeState = (Get-ClusterNode -Name $HealthExSvrObj.ServerName).State
+        }
+        elseif(($HealthExSvrObj.ExchangeInformation.ExServerRole -eq [HealthChecker.ServerRole]::ClientAccess))
+        {
+            Write-VerboseOutput("ClientAccess Server detected")
+            $ServerWideOfflineLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+            $ServerWideOfflineRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+        }
+        else
+        {
+            Write-VerboseOutput("We cannot check Maintenance State for Server Role: {0}" -f $HealthExSvrObj.ExchangeInformation.ExServerRole)
+            $MaintenanceCheckSupported = $false
+        }
+    }
+    else
+    {
+        Write-VerboseOutput("Exchange 2016 or higher detected on Server: {0}." -f $HealthExSvrObj.ServerName)
+        $MaintenanceCheckSupported = $true
+        $ServerComponentState = Get-ServerComponentState -Identity $HealthExSvrObj.ServerName
+        $MailboxServerInformation = Get-MailboxServer -Identity $HealthExSvrObj.ServerName
+        $ServerWideOfflineLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+        $ServerWideOfflineRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "ServerWideOffline"}).State
+        $HubTransportLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "HubTransport"}).State
+        $HubTransportRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "HubTransport"}).State
+        $UMCallRouterLocalState = ($ServerComponentState.LocalStates | Where-Object {$_.Component -match "UMCallRouter"}).State
+        $UMCallRouterRemoteState = ($ServerComponentState.RemoteStates | Where-Object {$_.Component -match "UMCallRouter"}).State
+        $DatabaseCopyActivationDisabledAndMoveNowState = $MailboxServerInformation.DatabaseCopyActivationDisabledAndMoveNow
+        $DatabaseCopyAutoActivationPolicyState = $MailboxServerInformation.DatabaseCopyAutoActivationPolicy
+        $ClusterNodeState = (Get-ClusterNode -Name $HealthExSvrObj.ServerName).State
+    }
+    
+    $returnObj | Add-Member -MemberType Noteproperty -Name "MaintenanceCheckSupported" -Value $MaintenanceCheckSupported
+    $returnObj | Add-Member -MemberType NoteProperty -Name "ServerWideOfflineLocalState" -Value $ServerWideOfflineLocalState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "ServerWideOfflineRemoteState" -Value $ServerWideOfflineRemoteState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "HubTransportLocalState" -Value $HubTransportLocalState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "HubTransportRemoteState" -Value $HubTransportRemoteState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "UMCallRouterLocalState" -Value $UMCallRouterLocalState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "UMCallRouterRemoteState" -Value $UMCallRouterRemoteState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "DatabaseCopyActivationDisabledAndMoveNowState" -Value $DatabaseCopyActivationDisabledAndMoveNowState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "DatabaseCopyAutoActivationPolicyState" -Value $DatabaseCopyAutoActivationPolicyState
+    $returnObj | Add-Member -MemberType NoteProperty -Name "ClusterNodeState" -Value $ClusterNodeState
+
+    return $returnObj
+}
+
 Function Get-VisualCRedistributableVersion {
 param(
 [Parameter(Mandatory=$true)][string]$MachineName
