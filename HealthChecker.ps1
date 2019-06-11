@@ -1,4 +1,4 @@
-<#
+﻿<#
 .NOTES
 	Name: HealthChecker.ps1
 	Original Author: Marc Nivens
