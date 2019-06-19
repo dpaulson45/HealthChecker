@@ -1980,8 +1980,8 @@ param(
         $exBuildObj.ExchangeVersion = [HealthChecker.ExchangeVersion]::Exchange2019
         if($buildRevision -ge 196.0 -and $buildRevision -lt 221.12){if($buildRevision -gt 196.9){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::Preview}
         elseif($buildRevision -lt 330.6){if($buildRevision -gt 221.12){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::RTM}
-        elseif($buildRevision -lt 397.1){if($buildRevision -gt 330.6){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU1}
-        elseif($buildRevision -ge 397.1){if($buildRevision -gt 397.1){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU2}
+        elseif($buildRevision -lt 397.3){if($buildRevision -gt 330.6){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU1}
+        elseif($buildRevision -ge 397.3){if($buildRevision -gt 397.3){$exBuildObj.InbetweenCUs = $true} $exBuildObj.CU = [HealthChecker.ExchangeCULevel]::CU2}
     }
     elseif($AdminDisplayVersion.Major -eq 15 -and $AdminDisplayVersion.Minor -eq 1)
     {
