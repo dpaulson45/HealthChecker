@@ -3473,6 +3473,13 @@ param(
 	            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuild 1779.4 -CVEName "CVE-2019-1137"
 	        }
 	    }
+	    if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU14)
+	    {
+	        if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU14)
+	        {
+                Write-Green("There are no known vulnerabilities in this Exchange Server Version.")
+	        }
+	    }
     }
     elseif($HealthExSvrObj.ExchangeInformation.ExchangeVersion -eq [HealthChecker.ExchangeVersion]::Exchange2019)
     {
@@ -3519,6 +3526,13 @@ param(
 	            Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuild 397.5 -CVEName "CVE-2019-1137"
 	        }
 	    }
+        if($exchangeCU -le [HealthChecker.ExchangeCULevel]::CU3)
+        {
+            if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU3)
+            {
+                Write-Green("There are no known vulnerabilities in this Exchange Server Version.")
+            }
+        }
     }
     else 
     {
