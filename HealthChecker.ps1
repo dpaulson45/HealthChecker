@@ -696,6 +696,33 @@ Function Load-ExShell {
 	}
 }
 
+Function Load-ExShellv2
+{
+	#This check is still working so we keep it here
+	if((Test-Path 'HKLM:\SOFTWARE\Microsoft\ExchangeServer\v14\Setup') -or (Test-Path 'HKLM:\SOFTWARE\Microsoft\ExchangeServer\v15\Setup'))
+	{
+		try
+		{
+            Get-ExchangeServer | Out-Null
+            Write-Host "Exchange PowerShell Module already loaded"
+		}
+		catch
+		{
+            Invoke-CatchActions
+            Write-Host "Loading Exchange PowerShell Module..."
+            Import-Module $env:ExchangeInstallPath\bin\RemoteExchange.ps1 -ErrorAction Stop
+            Connect-ExchangeServer -ServerFqdn ([System.Net.Dns]::GetHostByName(($env:computerName))).Hostname -ClientApplication:ManagementShell
+            Clear-Host
+		}
+	}
+	else
+	{
+		Write-Host "Not on Exchange 2010 or newer. Going to exit."
+		sleep 2
+		exit
+	}   
+}
+
 Function Is-Admin {
     $currentPrincipal = New-Object Security.Principal.WindowsPrincipal( [Security.Principal.WindowsIdentity]::GetCurrent() )
     If( $currentPrincipal.IsInRole( [Security.Principal.WindowsBuiltInRole]::Administrator )) {
@@ -5564,7 +5591,7 @@ param(
     
     $Script:OutputFullPath = "{0}\{1}{2}" -f $OutputFilePath, $FileName, $endName
     $Script:OutXmlFullPath =  $Script:OutputFullPath.Replace(".txt",".xml")
-    Load-ExShell
+    Load-ExShellv2
 }
 
 Function Get-ErrorsThatOccurred {
