@@ -711,7 +711,7 @@ Function Load-ExShellv2
             Invoke-CatchActions
             Write-Host "Loading Exchange PowerShell Module..."
             Import-Module $env:ExchangeInstallPath\bin\RemoteExchange.ps1 -ErrorAction Stop
-            Connect-ExchangeServer -ServerFqdn ([System.Net.Dns]::GetHostByName(($env:computerName))).Hostname -ClientApplication:ManagementShell
+            Connect-ExchangeServer -auto -ClientApplication:ManagementShell
             Clear-Host
 		}
 	}
