@@ -4875,11 +4875,13 @@ param(
         }
     }
 
-    #####################
-    #Vulnerability Check#
-    #####################
+    #################
+    #Security Checks#
+    #################
 
     Display-MSExchangeVulnerabilities $HealthExSvrObj
+    Write-Break
+    Display-Smb1ServerStatus $HealthExSvrObj
 
 
     Write-Grey("`r`n`r`n")
