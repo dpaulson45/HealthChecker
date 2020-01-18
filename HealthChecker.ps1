@@ -100,7 +100,8 @@ param(
 [Parameter(Mandatory=$false,ParameterSetName="HTMLReport")]
     [string]$HtmlReportFile="ExchangeAllServersReport.html",
 [Parameter(Mandatory=$false,ParameterSetName="DCCoreReport")]
-    [switch]$DCCoreRatio
+    [switch]$DCCoreRatio,
+[Parameter(Mandatory=$false)][switch]$SaveDebugLog
 )
 
 <#
@@ -827,12 +828,7 @@ param(
     return $loggerObject
 }
 
-if((Test-Path -Path "$env:ProgramData\ExchangeTools\HealthChecker") -ne $true)
-{
-    New-Item -ItemType Directory -Path "$env:ProgramData\ExchangeTools\HealthChecker" | Out-Null
-}
-
-$Script:Logger = New-LoggerObject -LogName "HealthChecker-Debug" -LogDirectory "$env:ProgramData\ExchangeTools\HealthChecker" -VerboseEnabled $true -EnableDateTime $false -ErrorAction SilentlyContinue
+$Script:Logger = New-LoggerObject -LogName "HealthChecker-Debug" -LogDirectory $OutputFilePath -VerboseEnabled $true -EnableDateTime $false -ErrorAction SilentlyContinue
 
 ############################################################
 ############################################################
@@ -6264,11 +6260,12 @@ Function Get-ErrorsThatOccurred {
 
         if(($Error.Count - $Script:ErrorStartCount) -ne $Script:ErrorsExcludedCount)
         {
-            Write-Red("There appears to have been some errors in the script. To assist with debugging of the script, please RE-RUN the script with -Verbose send the .txt and .xml file to ExToolsFeedback@microsoft.com.")
+            Write-Red("There appears to have been some errors in the script. To assist with debugging of the script, please send the HealthChecker-Debug_*.txt and .xml file to ExToolsFeedback@microsoft.com.")
 	        $Script:Logger.PreventLogCleanup = $true
             Write-Errors
         }
-        elseif($Script:VerboseEnabled)
+        elseif($Script:VerboseEnabled -or 
+            $SaveDebugLog)
         {
             Write-VerboseOutput("All errors that occurred were in try catch blocks and was handled correctly.")
 	        $Script:Logger.PreventLogCleanup = $true
@@ -6339,19 +6336,19 @@ Function Main {
         Build-HtmlServerReport
         Get-ErrorsThatOccurred
         sleep 2;
-        exit
+        return
     }
 
     if((Test-Path $OutputFilePath) -eq $false)
     {
         Write-Host "Invalid value specified for -OutputFilePath." -ForegroundColor Red
-        exit 
+        return 
     }
 
     if($LoadBalancingReport)
     {
         LoadBalancingMain
-        exit
+        return
     }
 
     if($DCCoreRatio)
@@ -6362,11 +6359,11 @@ Function Main {
         {
             Get-ExchangeDCCoreRatio
             Get-ErrorsThatOccurred
+            return
         }
         finally
         {
             $ErrorActionPreference = $oldErrorAction
-            exit 
         }
     }
 
@@ -6376,7 +6373,7 @@ Function Main {
         Get-MailboxDatabaseAndMailboxStatistics -Machine_Name $Server
         Write-Grey("Output file written to {0}" -f $Script:OutputFullPath)
         Get-ErrorsThatOccurred
-        exit
+        return
 	}
 
 	HealthCheckerMain
@@ -6393,4 +6390,8 @@ finally
         $Host.PrivateData.VerboseForegroundColor = $VerboseForeground
     }
     $Script:Logger.RemoveLatestLogFile()
+    if($Script:Logger.PreventLogCleanup)
+    {
+        Write-Host("Output Debug file written to {0}" -f $Script:Logger.FullPath)
+    }
 }
