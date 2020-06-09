@@ -1037,8 +1037,9 @@ if((Test-Path 'HKLM:\SOFTWARE\Microsoft\ExchangeServer\v14\Setup') -or
 
     try
     {
-        if(((Get-PSSession | Where-Object {($_.Availability -eq 'Available') -and ($_.ConfigurationName -eq 'Microsoft.Exchange')}).Count -eq 0) -and
-        ((Get-Module -Name RemoteExchange).Count -eq 1))
+        if(((Get-PSSession | Where-Object {($_.Availability -eq 'Available') -and 
+            ($_.ConfigurationName -eq 'Microsoft.Exchange')}).Count -eq 0) -and
+            ((Get-Module -Name RemoteExchange).Count -eq 1))
         {
             Write-VerboseWriter("Removing RemoteExchange module")
             Remove-Module -Name RemoteExchange
