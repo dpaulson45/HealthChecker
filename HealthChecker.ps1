@@ -4148,7 +4148,7 @@ param(
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuilds "1847.7","1913.7" -CVEs "CVE-2020-0688","CVE-2020-0692"
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuilds "1847.10","1913.10" -CVEs "CVE-2020-0903"
         }
-        if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU16)
+        if($exchangeCU -ge [HealthChecker.ExchangeCULevel]::CU16)
         {
             Write-Green("There are no known vulnerabilities in this Exchange Server Version.")
         }
@@ -4176,7 +4176,7 @@ param(
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuilds "464.11","529.8" -CVEs "CVE-2020-0688","CVE-2020-0692"
             Test-VulnerabilitiesByBuildNumbersAndDisplay -ExchangeBuildRevision $buildRevision -SecurityFixedBuilds "464.14","529.11" -CVEs "CVE-2020-0903"
         }
-        if($exchangeCU -eq [HealthChecker.ExchangeCULevel]::CU5)
+        if($exchangeCU -ge [HealthChecker.ExchangeCULevel]::CU5)
         {
             Write-Green("There are no known vulnerabilities in this Exchange Server Version.")
         }
