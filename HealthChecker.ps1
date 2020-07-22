@@ -4106,6 +4106,7 @@ param(
                 {
                     Write-VerboseOutput("Workaround to disable affected SMBv3 compression is NOT in place.")
                     Write-Red("System vulnerable to CVE-2020-0796.`r`n`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/CVE-2020-0796 for more information.")
+                    $Script:AllVulnerabilitiesPassed = $false
                 }
             }
             else 
