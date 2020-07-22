@@ -4024,6 +4024,7 @@ param(
                     If ((([DateTime]::ParseExact($KB2565063_RegValueInstallDate,”yyyyMMdd”,$null))) -lt (([DateTime]::ParseExact($E15_RegValueInstallData,”yyyyMMdd”,$null))))
                     {
                         Write-Red("Vulnerable to CVE-2010-3190.`r`n`tSee: https://techcommunity.microsoft.com/t5/Exchange-Team-Blog/MS11-025-required-on-Exchange-Server-versions-released-before/ba-p/608353 for more information.")
+                        $Script:AllVulnerabilitiesPassed = $false
                     }
                     Else
                     {
@@ -4039,6 +4040,7 @@ param(
             Else
             {
                 Write-Red("Vulnerable to CVE-2010-3190.`r`n`tSee: https://techcommunity.microsoft.com/t5/Exchange-Team-Blog/MS11-025-required-on-Exchange-Server-versions-released-before/ba-p/608353 for more information.")
+                $Script:AllVulnerabilitiesPassed = $false
             }
         }
         Else
@@ -4060,6 +4062,7 @@ param(
                 If ((([DateTime]::ParseExact($KB2565063_RegValueInstallDate,”yyyyMMdd”,$null))) -lt (([DateTime]::ParseExact($E2010_RegValueInstallDate,”yyyyMMdd”,$null))))
                 {
                     Write-Red("Potentially Vulnerable to CVE-2010-3190.`r`n`tSee: https://techcommunity.microsoft.com/t5/Exchange-Team-Blog/MS11-025-required-on-Exchange-Server-versions-released-before/ba-p/608353 for more information.")
+                    $Script:AllVulnerabilitiesPassed = $false
                 }
                 Else
                 {
@@ -4070,6 +4073,7 @@ param(
             {
                 Write-Red("Unable to determine Exchange server install date!")
                 Write-Red("Potentially vulnerable to CVE-2010-3190.")
+                $Script:AllVulnerabilitiesPassed = $false
             }
         }
         Else
@@ -4077,6 +4081,7 @@ param(
             Write-Red("`nPotentially vulnerable to CVE-2010-3190.")
             Write-Red("You should check if your build is prior October 2018 and if so, install KB2565063")
             Write-Red("See: https://techcommunity.microsoft.com/t5/Exchange-Team-Blog/MS11-025-required-on-Exchange-Server-versions-released-before/ba-p/608353 for more information.")
+            $Script:AllVulnerabilitiesPassed = $false
         }
     }
 
