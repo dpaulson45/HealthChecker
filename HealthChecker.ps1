@@ -4119,6 +4119,68 @@ param(
         Write-VerboseOutput("Operating System NOT vulnerable to CVE-2020-0796.")
     }
 
+    #Description: Check for CVE-2020-1147
+    #Affected OS versions: Every OS supporting .NET Core 2.1 and 3.1 and .NET Framework 2.0 SP2 or above
+    #Fix: https://portal.msrc.microsoft.com/en-US/security-guidance/advisory/CVE-2020-1147
+    #Woraround: N/A
+
+    Write-VerboseOutput("Testing CVE: CVE-2020-1147")
+    $netInstallPath = Invoke-RegistryHandler -RegistryHive "LocalMachine" -MachineName $Machine_Name -SubKey "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" -GetValue "InstallPath"
+    if($netInstallPath)
+    {
+        if($Machine_Name -match $env:COMPUTERNAME)
+        {
+            Write-VerboseOutput("Query .NET DLL information for local machine: {0}" -f $env:COMPUTERNAME)
+            $systemDataDll = (Get-Item "$netInstallPath\System.Data.dll")
+            $systemConfigurationDll = (Get-Item "$netInstallPath\System.Configuration.dll")
+
+            [int]$systemDataDllFileBuildPart = $systemDataDll.VersionInfo.FileBuildPart
+            [int]$systemConfigurationDllFileBuildPart = $systemConfigurationDll.VersionInfo.FileBuildPart
+        }
+        else
+        {
+            Write-VerboseOutput("Query .NET DLL information for remote machine: {0}" -f $Machine_Name)
+            $systemDataDll = Invoke-Command -ComputerName $Machine_Name -ScriptBlock {(Get-Item "$($args[0])System.Data.dll")} -ArgumentList $netInstallPath
+            $systemConfigurationDll = Invoke-Command -ComputerName $Machine_Name -ScriptBlock {(Get-Item "$($args[0])System.Configuration.dll")} -ArgumentList $netInstallPath
+        
+            [int]$systemDataDllFileBuildPart = (((($systemDataDll.VersionInfo).Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1]).Split(".")[2]
+            [int]$systemConfigurationDllFileBuildPart = (((($systemConfigurationDll.VersionInfo).Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1]).Split(".")[2]
+        }
+        Write-VerboseOutput("System.Data.dll FileBuildPart is: {0}" -f $systemDataDllFileBuildPart)
+        Write-VerboseOutput("System.Data.dll LastWriteTimeUtc is: {0}" -f $systemDataDll.LastWriteTimeUtc)
+        Write-VerboseOutput("System.Configuration.dll FileBuildPart is: {0}" -f $systemConfigurationDllFileBuildPart)
+        Write-VerboseOutput("System.Configuration.dll LastWriteTimeUtc is: {0}" -f $systemConfigurationDll.LastWriteTimeUtc)
+
+        if($HealthExSvrObj.NetVersionInfo.NetVersion -eq [HealthChecker.NetVersion]::Net4d8)
+        {
+            [int]$dllFileBuildPartToCheckAgainst = 4190
+            Write-VerboseOutput(".NET 4.8 detected. Checking against FileBuildPart: {0} " -f $dllFileBuildPartToCheckAgainst)
+        }
+        else
+        {
+            [int]$dllFileBuildPartToCheckAgainst = 3630
+            Write-VerboseOutput("Checking against FileBuildPart: {0}" -f $dllFileBuildPartToCheckAgainst)
+        }
+
+        if(($systemDataDllFileBuildPart -ge $dllFileBuildPartToCheckAgainst) -and 
+        ($systemConfigurationDllFileBuildPart -ge $dllFileBuildPartToCheckAgainst) -and
+        ($systemDataDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and 
+        ($systemConfigurationDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))))
+        {
+            Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0}" -f "CVE-2020-1147")
+        }
+        else
+        {
+            Write-Red("System vulnerable to {0}.`r`n`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147")    
+            $Script:AllVulnerabilitiesPassed = $false
+        }
+    }
+    else 
+    {
+        Write-Red("Unable to determine .NET Framework install path!")
+        Write-Red("Potentially vulnerable to CVE-2020-1147.")
+    }
+
     #Check for different vulnerabilities
     #We run checks based on build revision only for Exchange 2013/2016/2019
     #We check only for year 2018+ vulnerabilities
