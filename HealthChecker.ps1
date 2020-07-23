@@ -4132,7 +4132,7 @@ param(
 
     Write-VerboseOutput("Testing CVE: CVE-2020-1147")
     $netInstallPath = Invoke-RegistryHandler -RegistryHive "LocalMachine" -MachineName $Machine_Name -SubKey "SOFTWARE\Microsoft\NET Framework Setup\NDP\v4\Full" -GetValue "InstallPath"
-    if($netInstallPath)
+    if($netInstallPath -and ($HealthExSvrObj.NetVersionInfo.NetVersion -ne [HealthChecker.NetVersion]::Unknown))
     {
         if($Machine_Name -match $env:COMPUTERNAME)
         {
@@ -4183,8 +4183,9 @@ param(
     }
     else 
     {
-        Write-Red("Unable to determine .NET Framework install path!")
+        Write-Red("Unable to determine .NET Framework install path or .NET Framework version!")
         Write-Red("Potentially vulnerable to CVE-2020-1147.")
+        $Script:AllVulnerabilitiesPassed = $false
     }
 
     #Check for different vulnerabilities
