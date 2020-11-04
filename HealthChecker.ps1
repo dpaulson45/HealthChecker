@@ -394,7 +394,8 @@ using System.Collections;
             public string LinkSpeed;    //speed of the adapter 
             public System.DateTime DriverDate;   // date of the driver that is currently installed on the server 
             public string DriverVersion; // version of the driver that we are on 
-            public string RSSEnabled;  //bool to determine if RSS is enabled 
+            public string RSSEnabled;  //bool to determine if RSS is enabled
+            public PnPCapabilitySettings PnPCapabilitySettings = new PnPCapabilitySettings();
             public string Name;        //name of the adapter 
             public object NICObject; //object to store the adapter info 
             public bool IPv6Enabled; //Checks to see if we have an IPv6 address on the NIC 
@@ -1803,6 +1804,109 @@ Function Get-AllNicInformation {
         return (New-NICInformation -NetworkConfigurations $wmiNetworkCards -WmiObject $true)
     }
     
+}
+
+Function Get-NicPnPCapabilitiesSettings {
+[CmdletBinding(DefaultParameterSetName="Modern")]
+param(
+[Parameter(Mandatory=$true,ParameterSetName="Modern")]
+[Parameter(Mandatory=$true,ParameterSetName="Legacy")]
+[string]$MachineName,
+[Parameter(Mandatory=$true,ParameterSetName="Legacy")]
+[int]$NicAdapterDeviceID,
+[Parameter(Mandatory=$true,ParameterSetName="Modern")]
+[string]$NicAdapterInstanceId,
+[Parameter(Mandatory=$false,ParameterSetName="Modern")]
+[Parameter(Mandatory=$false,ParameterSetName="Legacy")]
+[scriptblock]$CatchActionFunction
+)
+
+    #Function Version 1.2
+    <# 
+    Required Functions: 
+        https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-VerboseWriters/Write-VerboseWriter.ps1
+        https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Invoke-RegistryGetValue/Invoke-RegistryGetValue.ps1
+    #>
+
+    Write-VerboseWriter("Calling: Get-NicPnPCapabilitiesSettings")
+    $nicAdapterBasicPath = "SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002bE10318}"
+
+    if($NicAdapterDeviceID)
+    {
+        if($NicAdapterDeviceID -lt 10)
+        {
+            Write-VerboseOutput("[Legacy] NicAdapterDeviceId is lower than 10")
+            $adapterDeviceNumber = "000"+$NicAdapterDeviceID
+        }
+        else 
+        {
+            Write-VerboseOutput("[Legacy] NicAdapterDeviceId is greater than 10")
+            $adapterDeviceNumber = "00"+$NicAdapterDeviceID
+        }
+        $nicAdapterPnPCapabilitiesDeviceIDSubKey = "$nicAdapterBasicPath\$adapterDeviceNumber"
+        $nicAdapterPnPCapabilitiesValue = Invoke-RegistryGetValue -RegistryHive "LocalMachine" -MachineName $MachineName -SubKey $nicAdapterPnPCapabilitiesDeviceIDSubKey -GetValue "PnPCapabilities" -CatchActionFunction $CatchActionFunction
+    }
+    else
+    {
+        #We need to loop through the existing adapter entries to find a match using InstanceId
+        Write-VerboseOutput("Probing started to detect NIC adapter registry path")
+        $i = 0
+        do
+        {
+            if($i -lt 10)
+            {
+                Write-VerboseOutput("[Modern] NicAdapterDeviceId is lower than 10")
+                $adapterDeviceNumber = "000"+$i
+            }
+            else
+            {
+                Write-VerboseOutput("[Modern] NicAdapterDeviceId is greater than 10")
+                $adapterDeviceNumber = "00"+$i
+            }
+            $nicAdapterPnPCapabilitiesInstanceIdProbingSubKey = "$nicAdapterBasicPath\$adapterDeviceNumber"
+            $nicAdapterPnpCapabilitiesInstanceIdProbingValue = Invoke-RegistryGetValue -RegistryHive "LocalMachine" -MachineName $MachineName -SubKey $nicAdapterPnPCapabilitiesInstanceIdProbingSubKey -GetValue "NetCfgInstanceId" -CatchActionFunction $CatchActionFunction
+            
+            if($nicAdapterPnpCapabilitiesInstanceIdProbingValue -eq $NicAdapterInstanceId)
+            {
+                Write-VerboseOutput("Matching ComponentId found - we now check for PnPCapabilities value")
+                $nicAdapterPnpCapabilitiesValue = Invoke-RegistryGetValue -RegistryHive "LocalMachine" -MachineName $MachineName -SubKey $nicAdapterPnPCapabilitiesInstanceIdProbingSubKey -GetValue "PnPCapabilities" -CatchActionFunction $CatchActionFunction
+                Write-VerboseOutput("PnPCapabilities value: {0}" -f $nicAdapterPnpCapabilitiesValue)
+                break
+            }
+            else
+            {
+                Write-VerboseOutput("No matching ComponentId found - increase index and continue testing")
+                $i++
+            } 
+        } while ($null -ne $nicAdapterPnpCapabilitiesInstanceIdProbingValue)
+    }
+
+    <#
+    Option 1: Allow the computer to turn off this device to save power
+    Option 2: Allow this device to wake the computer
+    Option 3: Only allow a magic packet to wake the computer
+
+    Option 1 and option 2 are checked, Option 3 is unchecked: This is default and hence its value is 0
+    Option 1, option 2, and option 3 are all checked: The value becomes 0x100 (256)
+    Only option 1 is checked: The value becomes 0x110 (272)
+    Option 1 is unchecked (Note that option 2 and option 3 will be greyed out as a result): The value becomes 0x118 (280)
+
+    For deployment purpose, to keep the value for Allow the Computer to turn off this device to save power cleared, one needs to use the value 24 (0x18)
+    If you want to keep the Allow the Computer to turn off this device to save power checked and the Option 2 and 3 cleared, the required value would be 10 (0x16)
+
+    https://support.microsoft.com/en-us/help/2740020/information-about-power-management-setting-on-a-network-adapter
+    #>
+
+    switch($nicAdapterPnpCapabilitiesValue)
+    {
+        0 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is enabled"); return $false}
+        10 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is enabled"); return $false}
+        24 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is already disabled"); return $true}
+        256 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is enabled"); return $false}
+        272 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is enabled"); return $false}
+        280 {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is already disabled"); return $true}
+        default {Write-VerboseOutput("'Allow the computer to turn off this device to save power' is not or misconfigured"); return $false}
+    }
 }
 
 Function Get-HttpProxySetting {
@@ -4855,21 +4959,45 @@ param(
         $dllFileBuildPartToCheckAgainst = 4190
     }
 
-    Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemDataDll = $osInformation.NETFramework.FileInformation["System.Data.dll"]).VersionInfo.FileBuildPart, `
-        $systemDataDll.LastAccessTimeUtc)
-    Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemConfigurationDll = $osInformation.NETFramework.FileInformation["System.Configuration.dll"]).VersionInfo.FileBuildPart, `
-        $systemConfigurationDll.LastAccessTimeUtc)
+    $systemDataDll = New-Object PSCustomObject
+    try 
+    {
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($osInformation.NETFramework.FileInformation["System.Data.dll"].LastWriteTimeUtc))
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int](((($osInformation.NETFramework.FileInformation["System.Data.dll"].VersionInfo.Split("`n") | Select-String 'ProductVersion')) -Split(":")).Trim()[1]).Split(".")[2])
+    }
+    catch 
+    {
+        Invoke-CatchActions
+        Write-VerboseOutput("It seems that we are on a local computer. Trying to query [System.Data.dll] FileBuildPart again.")
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int]($osInformation.NETFramework.FileInformation["System.Data.dll"].VersionInfo.FileBuildPart))
+    }
 
-    if($systemDataDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemConfigurationDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemDataDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
-        $systemConfigurationDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
+    $systemConfigurationDll = New-Object PSCustomObject
+    try
+    {
+        $systemCOnfigurationDll | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($osInformation.NETFramework.FileInformation["System.Configuration.dll"].LastWriteTimeUtc))
+        $systemConfigurationDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int](((($osInformation.NETFramework.FileInformation["System.Configuration.dll"].VersionInfo.Split("`n") | Select-String 'ProductVersion')) -Split(":")).Trim()[1]).Split(".")[2])
+    }
+    catch
+    {
+        Invoke-CatchActions
+        Write-VerboseOutput("It seems that we are on a local computer. Trying to query [System.Configuration.dll] FileBuildPart again.")
+        $systemConfigurationDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int]($osInformation.NETFramework.FileInformation["System.Configuration.dll"].VersionInfo.FileBuildPart))
+    }
+
+    Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f $systemDataDll.FileBuildPart, $systemDataDll.LastWriteTimeUtc)
+    Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f $systemConfigurationDll.FileBuildPart, $systemConfigurationDll.LastWriteTimeUtc)
+
+    if($systemDataDll.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
+        $systemConfigurationDll.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
+        $systemDataDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
+        $systemConfigurationDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
     {
         Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0}" -f "CVE-2020-1147")
     }
     else
     {
-        $AllVulnerabilitiesPassed = $false
+        $Script:AllVulnerabilitiesPassed = $false
         $Script:AnalyzedInformation = Add-AnalyzedResultInformation -Name "Security Vulnerability" -Details ("{0}`r`n`t`t`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147") `
             -DisplayGroupingKey $keySecuritySettings `
             -DisplayWriteType "Red" `
