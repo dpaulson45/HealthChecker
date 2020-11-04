@@ -4855,21 +4855,45 @@ param(
         $dllFileBuildPartToCheckAgainst = 4190
     }
 
-    Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemDataDll = $osInformation.NETFramework.FileInformation["System.Data.dll"]).VersionInfo.FileBuildPart, `
-        $systemDataDll.LastAccessTimeUtc)
-    Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemConfigurationDll = $osInformation.NETFramework.FileInformation["System.Configuration.dll"]).VersionInfo.FileBuildPart, `
-        $systemConfigurationDll.LastAccessTimeUtc)
+    $systemDataDll = New-Object PSCustomObject
+    try 
+    {
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($osInformation.NETFramework.FileInformation["System.Data.dll"].LastWriteTimeUtc))
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int](((($osInformation.NETFramework.FileInformation["System.Data.dll"].VersionInfo.Split("`n") | Select-String 'ProductVersion')) -Split(":")).Trim()[1]).Split(".")[2])
+    }
+    catch 
+    {
+        Invoke-CatchActions
+        Write-VerboseOutput("It seems that we are on a local computer. Trying to query System.Data.dll FileBuildPart again.")
+        $systemDataDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int]($osInformation.NETFramework.FileInformation["System.Data.dll"].VersionInfo.FileBuildPart))
+    }
 
-    if($systemDataDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemConfigurationDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemDataDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
-        $systemConfigurationDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
+    $systemConfigurationDll = New-Object PSCustomObject
+    try
+    {
+        $systemCOnfigurationDll | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($osInformation.NETFramework.FileInformation["System.Configuration.dll"].LastWriteTimeUtc))
+        $systemConfigurationDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int](((($osInformation.NETFramework.FileInformation["System.Configuration.dll"].VersionInfo.Split("`n") | Select-String 'ProductVersion')) -Split(":")).Trim()[1]).Split(".")[2])
+    }
+    catch
+    {
+        Invoke-CatchActions
+        Write-VerboseOutput("It seems that we are on a local computer. Trying to query System.Configuration.dll FileBuildPart again.")
+        $systemConfigurationDll | Add-Member -MemberType NoteProperty -Name "FileBuildPart" -Value ([int]($osInformation.NETFramework.FileInformation["System.Configuration.dll"].VersionInfo.FileBuildPart))
+    }
+
+    Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f $systemDataDll.FileBuildPart, $systemDataDll.LastWriteTimeUtc)
+    Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f $systemConfigurationDll.FileBuildPart, $systemConfigurationDll.LastWriteTimeUtc)
+
+    if($systemDataDll.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
+        $systemConfigurationDll.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
+        $systemDataDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
+        $systemConfigurationDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
     {
         Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0}" -f "CVE-2020-1147")
     }
     else
     {
-        $AllVulnerabilitiesPassed = $false
+        $Script:AllVulnerabilitiesPassed = $false
         $Script:AnalyzedInformation = Add-AnalyzedResultInformation -Name "Security Vulnerability" -Details ("{0}`r`n`t`t`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147") `
             -DisplayGroupingKey $keySecuritySettings `
             -DisplayWriteType "Red" `
