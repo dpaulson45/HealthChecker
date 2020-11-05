@@ -1498,15 +1498,16 @@ Function Get-DotNetDllFileVersions {
         }
         else
         {
+            $preCookedNetDllVersionInfo = (($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1]
+
             $cookedNetDllFileInfo = New-Object PSCustomObject
             $cookedNetDllFileInfo | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($getItem.LastWriteTimeUtc))
             $cookedNetDllFileInfo | Add-Member -MemberType NoteProperty -Name "VersionInfo" -Value ([PSCustomObject]@{
-                FileMajorPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[0])
-                FileMinorPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[1])
-                FileBuildPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[2])
-                FilePrivatePart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[3])
+                FileMajorPart = [int]$preCookedNetDllVersionInfo.Split(".")[0]
+                FileMinorPart = [int]$preCookedNetDllVersionInfo.Split(".")[1]
+                FileBuildPart = [int]$preCookedNetDllVersionInfo.Split(".")[2]
+                FilePrivatePart = [int]$preCookedNetDllVersionInfo.Split(".")[3]
             })
-
             $files.Add($filename, $cookedNetDllFileInfo)
         }
     }
