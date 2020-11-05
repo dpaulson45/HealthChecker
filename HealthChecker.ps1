@@ -4856,20 +4856,20 @@ param(
     }
 
     Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemDataDll = $osInformation.NETFramework.FileInformation["System.Data.dll"]).VersionInfo.FileBuildPart, `
-        $systemDataDll.LastAccessTimeUtc)
+        ($dataLastAccessTimeUtc = $systemDataDll.LastAccessTimeUtc))
     Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemConfigurationDll = $osInformation.NETFramework.FileInformation["System.Configuration.dll"]).VersionInfo.FileBuildPart, `
-        $systemConfigurationDll.LastAccessTimeUtc)
+        ($configurationLastAccessTimeUtc = $systemConfigurationDll.LastAccessTimeUtc))
 
     if($systemDataDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
         $systemConfigurationDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemDataDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
-        $systemConfigurationDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
+        $dataLastAccessTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
+        $configurationLastAccessTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
     {
         Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0}" -f "CVE-2020-1147")
     }
     else
     {
-        $AllVulnerabilitiesPassed = $false
+        $Script:AllVulnerabilitiesPassed = $false
         $Script:AnalyzedInformation = Add-AnalyzedResultInformation -Name "Security Vulnerability" -Details ("{0}`r`n`t`t`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147") `
             -DisplayGroupingKey $keySecuritySettings `
             -DisplayWriteType "Red" `
