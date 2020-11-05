@@ -4947,6 +4947,7 @@ param(
         $Script:AnalyzedInformation = Add-AnalyzedResultInformation -Name "Security Vulnerability" -Details ("{0}`r`n`t`t`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147") `
             -DisplayGroupingKey $keySecuritySettings `
             -DisplayWriteType "Red" `
+            -AddHtmlDetailRow $false `
             -AnalyzedInformation $Script:AnalyzedInformation
     }
 
