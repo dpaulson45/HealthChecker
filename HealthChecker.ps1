@@ -1461,7 +1461,7 @@ Function Get-DotNetDllFileVersions {
     [scriptblock]$CatchActionFunction
     )
 
-    #Function Version 1.0
+    #Function Version 1.1
     <#
     Required Functions:
         https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-VerboseWriters/Write-VerboseWriter.ps1
@@ -1491,7 +1491,24 @@ Function Get-DotNetDllFileVersions {
     {
         Write-VerboseWriter("Query .NET DLL information for machine: {0}" -f $ComputerName)
         $getItem = Invoke-ScriptBlockHandler -ComputerName $ComputerName -ScriptBlock ${Function:ScriptBlock-GetItem} -ArgumentList ("{0}\{1}" -f $dotNetInstallPath, $filename) -CatchActionFunction $CatchActionFunction
-        $files.Add($filename, $getItem)
+        
+        if($ComputerName -eq $env:COMPUTERNAME)
+        {
+            $files.Add($filename, $getItem)
+        }
+        else
+        {
+            $cookedNetDllFileInfo = New-Object PSCustomObject
+            $cookedNetDllFileInfo | Add-Member -MemberType NoteProperty -Name "LastWriteTimeUtc" -Value ([datetime]($getItem.LastWriteTimeUtc))
+            $cookedNetDllFileInfo | Add-Member -MemberType NoteProperty -Name "VersionInfo" -Value ([PSCustomObject]@{
+                FileMajorPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[0])
+                FileMinorPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[1])
+                FileBuildPart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[2])
+                FilePrivatePart = ([int](($getItem.VersionInfo.Split("`n") | Select-String 'ProductVersion') -Split(":")).Trim()[1].Split(".")[3])
+            })
+
+            $files.Add($filename, $cookedNetDllFileInfo)
+        }
     }
 
     return $files
@@ -4912,20 +4929,20 @@ param(
     }
 
     Write-VerboseOutput("System.Data.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemDataDll = $osInformation.NETFramework.FileInformation["System.Data.dll"]).VersionInfo.FileBuildPart, `
-        $systemDataDll.LastAccessTimeUtc)
+        $systemDataDll.LastWriteTimeUtc)
     Write-VerboseOutput("System.Configuration.dll FileBuildPart: {0} | LastWriteTimeUtc: {1}" -f ($systemConfigurationDll = $osInformation.NETFramework.FileInformation["System.Configuration.dll"]).VersionInfo.FileBuildPart, `
-        $systemConfigurationDll.LastAccessTimeUtc)
+        $systemConfigurationDll.LastWriteTimeUtc)
 
     if($systemDataDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
         $systemConfigurationDll.VersionInfo.FileBuildPart -ge $dllFileBuildPartToCheckAgainst -and
-        $systemDataDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
-        $systemConfigurationDll.LastWriteTime -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
+        $systemDataDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)) -and
+        $systemConfigurationDll.LastWriteTimeUtc -ge ([System.Convert]::ToDateTime("06/05/2020", [System.Globalization.DateTimeFormatInfo]::InvariantInfo)))
     {
         Write-VerboseOutput("System NOT vulnerable to {0}. Information URL: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0}" -f "CVE-2020-1147")
     }
     else
     {
-        $AllVulnerabilitiesPassed = $false
+        $Script:AllVulnerabilitiesPassed = $false
         $Script:AnalyzedInformation = Add-AnalyzedResultInformation -Name "Security Vulnerability" -Details ("{0}`r`n`t`t`tSee: https://portal.msrc.microsoft.com/en-us/security-guidance/advisory/{0} for more information." -f "CVE-2020-1147") `
             -DisplayGroupingKey $keySecuritySettings `
             -DisplayWriteType "Red" `
