@@ -396,7 +396,7 @@ using System.Collections;
             public string LinkSpeed;    //speed of the adapter 
             public System.DateTime DriverDate;   // date of the driver that is currently installed on the server 
             public string DriverVersion; // version of the driver that we are on 
-            public string RSSEnabled;  //bool to determine if RSS is enabled 
+            public bool RSSEnabled;  //bool to determine if RSS is enabled 
             public string Name;        //name of the adapter 
             public object NICObject; //object to store the adapter info 
             public bool IPv6Enabled; //Checks to see if we have an IPv6 address on the NIC 
@@ -1680,8 +1680,14 @@ Function Get-AllNicInformation {
         {
             $currentErrors = $Error.Count
             $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
-            $networkIpConfiguration = Get-NetIPConfiguration -CimSession $CimSession -ErrorAction Stop | ?{$_.NetAdapter.MediaConnectionState -eq "Connected"}
+            $networkIpConfiguration = Get-NetIPConfiguration -CimSession $CimSession -ErrorAction Stop | Where-Object {$_.NetAdapter.MediaConnectionState -eq "Connected"}
     
+            foreach($networkIpConfigurationObject in $networkIpConfiguration)
+            {
+                $rssState = Get-NetAdapterRss -CimSession $cimSession -InterfaceDescription $networkIpConfigurationObject.InterfaceDescription -ErrorAction Stop
+                $networkIpConfigurationObject | Add-Member -MemberType NoteProperty -Name RSSEnabled -Value $rssState.Enabled
+            }
+
             if ($CatchActionFunction -ne $null)
             {
                 $index = 0
@@ -1763,6 +1769,7 @@ Function Get-AllNicInformation {
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "IPv6Enabled" -Value $false
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "Description" -Value $adapter.Description
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "DriverVersion" -Value [string]::Empty
+            $nicInformationObj | Add-Member -MemberType NoteProperty -Name "RSSEnabled" -Value ($networkConfig.RssEnabled)
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "MTUSize" -Value 0
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "PnPCapabilities" -Value ($nicPnpCapabilitiesSetting.PnPCapabilities)
             $nicInformationObj | Add-Member -MemberType NoteProperty -Name "SleepyNicDisabled" -Value ($nicPnpCapabilitiesSetting.SleepyNicDisabled)
@@ -4240,19 +4247,19 @@ param(
             $writeType = "Yellow"
             $testingValue = [string]::Empty
 
-            if ($adapter.RSSEnabled -eq "NoRSS")
+            if ($adapter.RSSEnabled -eq $false)
             {
-                $detailsValue = "No RSS Feature Detected."
+                $detailsValue = "Disabled --- Warning: Enabling RSS is recommended."
+                $testingValue = "Disabled"
             }
-            elseif ($adapter.RSSEnabled -eq "True")
+            elseif ($adapter.RSSEnabled -eq $true)
             {
                 $detailsValue = "Enabled"
                 $writeType = "Green"
             }
             else
             {
-                $detailsValue = "Disabled --- Warning: Enabling RSS is recommended."
-                $testingValue = "Disabled"
+                $detailsValue = "No RSS Feature Detected."
             }
 
             $analyzedResults = Add-AnalyzedResultInformation -Name "RSS" -Details $detailsValue `
