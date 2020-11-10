@@ -1692,6 +1692,7 @@ Function Get-AllNicInformation {
                     {
                         $false {$rssStateInt = 0}
                         $true {$rssStateInt = 1}
+                        default {$rssStateInt = 2}
                     }
                 }
                 catch
