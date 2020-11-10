@@ -396,7 +396,7 @@ using System.Collections;
             public string LinkSpeed;    //speed of the adapter 
             public System.DateTime DriverDate;   // date of the driver that is currently installed on the server 
             public string DriverVersion; // version of the driver that we are on 
-            public bool RSSEnabled;  //bool to determine if RSS is enabled 
+            public int RSSEnabled;  //int to determine if RSS is enabled 
             public string Name;        //name of the adapter 
             public object NICObject; //object to store the adapter info 
             public bool IPv6Enabled; //Checks to see if we have an IPv6 address on the NIC 
@@ -1684,8 +1684,23 @@ Function Get-AllNicInformation {
     
             foreach($networkIpConfigurationObject in $networkIpConfiguration)
             {
-                $rssState = Get-NetAdapterRss -CimSession $cimSession -InterfaceDescription $networkIpConfigurationObject.InterfaceDescription -ErrorAction Stop
-                $networkIpConfigurationObject | Add-Member -MemberType NoteProperty -Name RSSEnabled -Value $rssState.Enabled
+                try
+                {
+                    $rssState = Get-NetAdapterRss -CimSession $cimSession -InterfaceDescription $networkIpConfigurationObject.InterfaceDescription -ErrorAction Stop
+                    Write-VerboseOutput("RSS status successfully queried for NIC: {0}" -f $networkIpConfigurationObject.InterfaceDescription)
+                    switch($rssState.Enabled)
+                    {
+                        $false {$rssStateInt = 0}
+                        $true {$rssStateInt = 1}
+                    }
+                }
+                catch
+                {
+                    Write-VerboseOutput("Unable to query RSS state for NIC: {0}" -f $networkIpConfigurationObject.InterfaceDescription)
+                    $rssStateInt = 2
+                    Invoke-CatchActions
+                }
+                $networkIpConfigurationObject | Add-Member -MemberType NoteProperty -Name RSSEnabled -Value $rssStateInt
             }
 
             if ($CatchActionFunction -ne $null)
@@ -4247,12 +4262,12 @@ param(
             $writeType = "Yellow"
             $testingValue = [string]::Empty
 
-            if ($adapter.RSSEnabled -eq $false)
+            if ($adapter.RSSEnabled -eq 0)
             {
                 $detailsValue = "Disabled --- Warning: Enabling RSS is recommended."
                 $testingValue = "Disabled"
             }
-            elseif ($adapter.RSSEnabled -eq $true)
+            elseif ($adapter.RSSEnabled -eq 1)
             {
                 $detailsValue = "Enabled"
                 $writeType = "Green"
