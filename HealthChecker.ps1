@@ -262,6 +262,7 @@ using System.Collections;
             public bool ServerPendingReboot; // determines if the server is pending a reboot. TODO: Adjust to contain the registry values that we are looking at. 
             public TimeZoneInformation TimeZone = new TimeZoneInformation();    //stores time zone information 
             public Hashtable TLSSettings;            // stores the TLS settings on the server. 
+            public System.Array ExchangeCertificates;           //stores all the Exchange certificates on the servers. 
             public InstalledUpdatesInformation InstalledUpdates = new InstalledUpdatesInformation();  //store the install update 
             public ServerBootUpInformation ServerBootUp = new ServerBootUpInformation();   // stores the server boot up time information 
             public System.Array VcRedistributable;            //stores the Visual C++ Redistributable
@@ -2363,7 +2364,8 @@ Function Get-OperatingSystemInformation {
     $osInformation.TimeZone.DstIssueDetected = $timeZoneInformation.DstIssueDetected
     $osInformation.TimeZone.ActionsToTake = $timeZoneInformation.ActionsToTake
     $osInformation.TimeZone.CurrentTimeZone = Invoke-ScriptBlockHandler -ComputerName $Script:Server -ScriptBlock {([System.TimeZone]::CurrentTimeZone).StandardName} -ScriptBlockDescription "Getting Current Time Zone" -CatchActionFunction ${Function:Invoke-CatchActions}
-    $osInformation.TLSSettings = Get-AllTlsSettingsFromRegistry -MachineName $Script:Server -CatchActionFunction ${Function:Invoke-CatchActions} 
+    $osInformation.TLSSettings = Get-AllTlsSettingsFromRegistry -MachineName $Script:Server -CatchActionFunction ${Function:Invoke-CatchActions}
+    $osInformation.ExchangeCertificates = Get-ExchangeServerCertificates -ComputerName $Script:Server -CatchActionFunction ${Function:Invoke-CatchActions}
     $osInformation.VcRedistributable = Get-VisualCRedistributableVersion
     $osInformation.CredentialGuardEnabled = Get-CredentialGuardEnabled
     $osInformation.RegistryValues.CurrentVersionUbr = Invoke-RegistryGetValue `
@@ -4664,6 +4666,120 @@ param(
         }
     }
 
+    foreach($certificate in $osInformation.ExchangeCertificates)
+    {
+        if($certificate.LifetimeInDays -ge 60)
+        {
+            $displayColor = "Green"
+        }
+        elseif($certificateLifetimeInDays -ge 30)
+        {
+            $displayColor = "Yellow"
+        }
+        else
+        {
+            $displayColor = "Red"
+        }
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Certificate" `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 1 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "FriendlyName" -Details $certificate.FriendlyName `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Thumbprint" -Details $certificate.Thumbprint `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Lifetime in days" -Details $certificate.LifetimeInDays `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -DisplayWriteType $displayColor `
+        -AnalyzedInformation $analyzedResults
+
+        if($certificate.PublicKeySize -lt 2048)
+        {
+            $additionalDisplayValue = "It's recommended to use a key size of at least 2048 bit."
+
+            $analyzedResults = Add-AnalyzedResultInformation -Name "Key size" -Details $certificate.PublicKeySize `
+            -DisplayGroupingKey $keySecuritySettings `
+            -DisplayCustomTabNumber 2 `
+            -DisplayWriteType "Red" `
+            -AnalyzedInformation $analyzedResults
+
+            $analyzedResults = Add-AnalyzedResultInformation -Details $additionalDisplayValue `
+            -DisplayGroupingKey $keySecuritySettings `
+            -DisplayCustomTabNumber 2 `
+            -DisplayWriteType "Red" `
+            -AnalyzedInformation $analyzedResults
+        }
+        else 
+        {
+            $analyzedResults = Add-AnalyzedResultInformation -Name "Key size" -Details $certificate.PublicKeySize `
+            -DisplayGroupingKey $keySecuritySettings `
+            -DisplayCustomTabNumber 2 `
+            -AnalyzedInformation $analyzedResults
+        }
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Bound to services" -Details $certificate.Services `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Current Auth Certificate" -Details $certificate.IsCurrentAuthConfigCertificate `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "SAN Certificate" -Details $certificate.IsSanCertificate `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Namespaces" `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -AnalyzedInformation $analyzedResults
+
+        foreach($namespace in $certificate.Namespaces)
+        {
+            $analyzedResults = Add-AnalyzedResultInformation -Details $namespace `
+            -DisplayGroupingKey $keySecuritySettings `
+            -DisplayCustomTabNumber 3 `
+            -AnalyzedInformation $analyzedResults
+        }
+    }
+
+    if($Script:validAuthConfigCertificateFound)
+    {
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Valid Auth Certificate found" -Details $Script:validAuthConfigCertificateFound `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 1 `
+        -DisplayWriteType "Green" `
+        -AnalyzedInformation $analyzedResults
+    }
+    else
+    {
+        $additionalDisplayValue = "No valid Auth Certificate found. This may cause several problems --- Error"
+        
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Valid Auth Certificate found" -Details "False" `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 1 `
+        -DisplayWriteType "Red" `
+        -AnalyzedInformation $analyzedResults
+        
+        $analyzedResults = Add-AnalyzedResultInformation -Details $additionalDisplayValue `
+        -DisplayGroupingKey $keySecuritySettings `
+        -DisplayCustomTabNumber 2 `
+        -DisplayWriteType "Red" `
+        -AnalyzedInformation $analyzedResults
+    }
+
     $additionalDisplayValue = [string]::Empty
     $smb1Status = $osInformation.Smb1ServerSettings.Smb1Status
 
@@ -5015,6 +5131,169 @@ param(
 
     Write-Debug("End of Analyzer Engine")
     return $Script:AnalyzedInformation
+}
+
+Function Get-ExchangeServerCertificates {
+    [CmdletBinding()]
+    param(
+    [string]$ComputerName,
+    [scriptblock]$CatchActionFunction
+    )
+
+    #Function Version 1.0
+    <# 
+    Required Functions: 
+        https://raw.githubusercontent.com/dpaulson45/PublicPowerShellScripts/master/Functions/Write-VerboseWriters/Write-VerboseWriter.ps1
+    #>
+
+    Write-VerboseOutput("Calling: Get-ExchangeServerCertificates")
+
+    Function Convert-CertificateLifetimeToDays {
+        [CmdletBinding()]
+        param(
+        [object]$CertificateObject
+        )
+
+        if ($CertificateObject -eq [object]::Empty)
+        {
+            throw [System.Management.Automation.ParameterBindingException] "Failed to provide valid CertificateObject"
+        }
+
+        Write-VerboseOutput("Calculating lifetime for certificate with thumbprint: {0}" -f $CertificateObject.Thumbprint)
+        $certificateLifetimeInDays = (($CertificateObject.NotAfter) - (Get-Date)).Days
+
+        return $certificateLifetimeInDays
+    }
+
+    Function Test-IsSanCertificate {
+        [CmdletBinding()]
+        param(
+        [object]$CertificateObject
+        )
+
+        if ($CertificateObject -eq [object]::Empty)
+        {
+            throw [System.Management.Automation.ParameterBindingException] "Failed to provide valid CertificateObject"
+        }
+
+        Write-VerboseOutput("Validating if certificate: {0} is SAN or not" -f $CertificateObject.Thumbprint)
+        if(($CertificateObject.DnsNameList).count -gt 1)
+        {
+            return $true
+        }
+        else
+        {
+            return $false
+        }
+    }
+
+    Function Test-IsCurrentAuthConfigCertificate {
+        [CmdletBinding()]
+        param(
+        [object]$CertificateObject,
+        [object]$AuthConfigObject
+        )
+
+        if (($CertificateObject -eq [object]::Empty) -or ($AuthConfigObject -eq [object]::Empty))
+        {
+            throw [System.Management.Automation.ParameterBindingException] "Failed to provide valid Certificate or AuthConfig object"
+        }
+
+        Write-VerboseOutput("Validating if certificate: {0} is current AuthConfig certificate: {1}" -f $CertificateObject.Thumbprint, $AuthConfigObject.CurrentCertificateThumbprint)
+        if($CertificateObject.Thumbprint -eq $AuthConfigObject.CurrentCertificateThumbprint)
+        {
+            $Script:validAuthConfigCertificateFound = $true
+            return $true
+        }
+        else
+        {
+            return $false    
+        }
+    }
+
+    Function New-ExchangeCertificateInformation {
+        [CmdletBinding()]
+        param(
+        [object]$CertificateObject
+        )
+
+        if ($CertificateObject -eq [object]::Empty)
+        {
+            return $null
+        }
+        
+        try
+        {
+            $authConfig = Get-AuthConfig -ErrorAction Stop
+            $authConfigDetected = $true
+        }
+        catch
+        {
+            $authConfigDetected = $false
+        }
+
+        [array]$certObject = @()
+        foreach ($cert in $CertificateObject)
+        {
+            try 
+            {
+                $certificateLifetime = Convert-CertificateLifetimeToDays -CertificateObject $cert
+                $sanCertificateInfo = Test-IsSanCertificate -CertificateObject $cert
+                if($authConfigDetected)
+                {
+                    $isAuthConfigInfo = Test-IsCurrentAuthConfigCertificate -CertificateObject $cert -AuthConfigObject $authConfig
+                }
+                else
+                {
+                    $isAuthConfigInfo = "InvalidAuthConfig"    
+                }
+
+                $certInformationObj = New-Object PSCustomObject
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "FriendlyName" -Value $cert.FriendlyName
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "Thumbprint" -Value $cert.Thumbprint
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "PublicKeySize" -value $cert.PublicKeySize
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "IsSanCertificate" -Value $sanCertificateInfo
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "Namespaces" -Value $cert.DnsNameList
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "Services" -Value $cert.Services
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "IsCurrentAuthConfigCertificate" -Value $isAuthConfigInfo
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "LifetimeInDays" -Value $certificateLifetime
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "Status" -Value $cert.Status
+                $certInformationObj | Add-Member -MemberType NoteProperty -Name "CertificateObject" -Value $cert
+
+                $certObject += $certInformationObj
+            }
+            catch
+            {
+                Write-VerboseOutput("Unable to process certificate: {0}" -f $cert.Thumbprint)
+                if ($null -ne $CatchActionFunction)
+                {
+                    & $CatchActionFunction
+                }
+            }
+        }
+        Write-VerboseOutput("Processed: {0} certificates" -f $certObject.Count)
+        return $certObject
+    }
+
+    try
+    {
+        Write-VerboseOutput("Trying to receive certificates from Exchange server: {0}" -f $ComputerName)
+        $exchangeServerCertificates = Get-ExchangeCertificate -Server $ComputerName -ErrorAction Stop
+        if($null -ne $exchangeServerCertificates)
+        {
+            return (New-ExchangeCertificateInformation -CertificateObject $exchangeServerCertificates)
+        }
+    }
+    catch
+    {
+        Write-VerboseWriter("Failed to run Get-ExchangeCertificate. Error: {0}." -f $Error[0].Exception)
+        if ($null -ne $CatchActionFunction)
+        {
+            & $CatchActionFunction
+        }
+
+        throw
+    }
 }
 
 Function Write-ResultsToScreen {
