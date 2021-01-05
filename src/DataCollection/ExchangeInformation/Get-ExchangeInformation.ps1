@@ -16,7 +16,11 @@ param(
     if($buildInformation.MajorVersion -ge [HealthChecker.ExchangeMajorVersion]::Exchange2013)
     {
         $netFrameworkExchange = $exchangeInformation.NETFramework
-        $adminDisplayVersion = $exchangeInformation.GetExchangeServer.AdminDisplayVersion
+        $adminDisplayVersion = Get-ExchangeBuildNumberFromString -AdminDisplayVersion $exchangeInformation.GetExchangeServer.AdminDisplayVersion
+        if($null -ne $adminDisplayVersion.LocalBuildNumber)
+        {
+            $buildInformation.LocalBuildNumber = $adminDisplayVersion.LocalBuildNumber
+        }
         $revisionNumber = if($adminDisplayVersion.Revision -lt 10) {$adminDisplayVersion.Revision / 10} else {$adminDisplayVersion.Revision / 100 }
         $buildAndRevision = $adminDisplayVersion.Build + $revisionNumber
         Write-VerboseOutput("The build and revision number: {0}" -f $buildAndRevision)

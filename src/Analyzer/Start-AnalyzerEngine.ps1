@@ -73,6 +73,16 @@ param(
             -AnalyzedInformation $analyzedResults
     }
 
+    if ($null -ne $exchangeInformation.BuildInformation.LocalBuildNumber)
+    {
+        $analyzedResults = Add-AnalyzedResultInformation -Name "Warning" -Details ("Exchange Build: {0} on the local server is older than the Build on the server that was queried." -f $exchangeInformation.BuildInformation.LocalBuildNumber) `
+            -DisplayGroupingKey $keyExchangeInformation `
+            -DisplayWriteType "Yellow" `
+            -DisplayCustomTabNumber 2 `
+            -AddHtmlDetailRow $false `
+            -AnalyzedInformation $analyzedResults  
+    }
+
     if ($exchangeInformation.BuildInformation.KBsInstalled -ne $null)
     {
         $analyzedResults = Add-AnalyzedResultInformation -Details ("Exchange IU or Security Hotfix Detected.") `

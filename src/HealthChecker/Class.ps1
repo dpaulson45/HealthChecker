@@ -34,7 +34,8 @@ try {
                 public ExchangeMajorVersion MajorVersion; //Exchange Version (Exchange 2010/2013/2019)
                 public ExchangeCULevel CU;             // Exchange CU Level 
                 public string FriendlyName;     //Exchange Friendly Name is provided
-                public string BuildNumber;      //Exchange Build Number 
+                public string BuildNumber;      //Exchange Build Number
+                public string LocalBuildNumber; //Build number of the server where the script is executed (e.g. server with Exchange tools) 
                 public string ReleaseDate;      // Exchange release date for which the CU they are currently on
                 public bool SupportedBuild;     //Determines if we are within the correct build of Exchange.
                 public object ExchangeSetup;    //Stores the Get-Command ExSetup object
