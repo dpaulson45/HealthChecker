@@ -61,8 +61,16 @@ Function Get-AllNicInformation {
         )
         try {
             $currentErrors = $Error.Count
-            $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
-            $networkIpConfiguration = Get-NetIPConfiguration -CimSession $CimSession -ErrorAction Stop | Where-Object { $_.NetAdapter.MediaConnectionState -eq "Connected" }
+            $params = @{
+                ErrorAction = "Stop"
+            }
+            if(($ComputerName).Split(".")[0] -ne $env:COMPUTERNAME)
+            {
+                $cimSession = New-CimSession -ComputerName $ComputerName -ErrorAction Stop
+                $params.Add("CimSession", $CimSession)
+            }
+
+            $networkIpConfiguration = Get-NetIPConfiguration @params | Where-Object { $_.NetAdapter.MediaConnectionState -eq "Connected" }
 
             if ($null -ne $CatchActionFunction) {
                 $index = 0
