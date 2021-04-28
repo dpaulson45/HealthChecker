@@ -2,5 +2,4 @@
 
 New Home: https://aka.ms/ExchangeHealthChecker
 
-# Requirements
 The Exchange Health Checker has moved to the CSS-Exchange repository to be apart of all the tools that we are creating and updating.
